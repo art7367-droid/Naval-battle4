@@ -283,6 +283,7 @@ export function getCompartmentTypeColor(type: CompartmentType, status: Compartme
   // Цвета по типу отсека (для intact, flooded, on_fire)
   switch (type) {
     case 'weaponry':
+      return '#7f1d1d'; // Тёмно-красный
     case 'ammunition':
       return '#78350f'; // Тёмно-коричневый
     case 'propulsion':

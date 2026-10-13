@@ -226,8 +226,12 @@ export default function ShipSchematic({
       
       <div className="flex gap-3 text-[9px] justify-center flex-wrap">
         <div className="flex items-center gap-1">
+          <div className="w-3 h-3 rounded" style={{backgroundColor: '#7f1d1d'}}></div>
+          <span className="text-slate-400">Вооружение</span>
+        </div>
+        <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded" style={{backgroundColor: '#78350f'}}></div>
-          <span className="text-slate-400">Оружие/Боезапас</span>
+          <span className="text-slate-400">Боезапас</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded" style={{backgroundColor: '#1e3a8a'}}></div>

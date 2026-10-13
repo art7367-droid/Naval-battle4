@@ -114,7 +114,7 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
     setHasUnsavedChanges(true); // Помечаем что есть несохранённые изменения
   };
 
-  const handleMouseDown = (e: React.MouseEvent, compId: string) => {
+  const handleMouseDown = (e: React.MouseEvent, compId: string, forceMultiple: boolean = false) => {
     e.stopPropagation();
     e.preventDefault();
     const pos = compartmentPositions.get(compId);
@@ -123,12 +123,17 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
     if (!svgRect) return;
     const mouseX = e.clientX - svgRect.left - padding;
     const mouseY = e.clientY - svgRect.top - padding;
-    if (selectedCompartments.has(compId) && selectedCompartments.size > 1) {
+    
+    // Определяем, нужно ли перетаскивать несколько отсеков
+    const shouldDragMultiple = forceMultiple || (selectedCompartments.has(compId) && selectedCompartments.size > 1);
+    
+    if (shouldDragMultiple) {
       setDraggingMultiple(true);
       setDraggingCompartment(compId);
       setDragOffset({ x: mouseX - pos.gridX * gridSize, y: mouseY - pos.gridY * gridSize });
       setDragPosition({ x: pos.gridX, y: pos.gridY });
     } else {
+      setDraggingMultiple(false);
       setDraggingCompartment(compId);
       setDragOffset({ x: mouseX - pos.gridX * gridSize, y: mouseY - pos.gridY * gridSize });
       setDragPosition({ x: pos.gridX, y: pos.gridY });
@@ -268,20 +273,21 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
     // Цвета по типу отсека
     switch (type) {
       case 'weaponry':
+        return '#7f1d1d'; // Тёмно-красный
       case 'ammunition':
-        return '#78350f';
+        return '#78350f'; // Тёмно-коричневый
       case 'propulsion':
       case 'rudder':
       case 'propellers':
-        return '#1e3a8a';
+        return '#1e3a8a'; // Тёмно-синий
       case 'bridge':
       case 'control_system':
-        return '#713f12';
+        return '#713f12'; // Тёмно-жёлтый
       case 'fuel':
-        return '#155e75';
+        return '#155e75'; // Тёмно-бирюзовый
       case 'other':
       default:
-        return '#14532d';
+        return '#14532d'; // Тёмно-зелёный
     }
   };
 
@@ -406,12 +412,29 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
                   <g key={comp.id} onMouseDown={(e) => {
                     e.stopPropagation();
                     if (e.shiftKey) {
+                      // Shift+клик: добавляем/удаляем из выделения И начинаем перетаскивание
                       const newSelected = new Set(selectedCompartments);
-                      if (newSelected.has(comp.id)) newSelected.delete(comp.id); else newSelected.add(comp.id);
+                      if (newSelected.has(comp.id)) {
+                        newSelected.delete(comp.id);
+                      } else {
+                        newSelected.add(comp.id);
+                      }
                       setSelectedCompartments(newSelected);
+                      // Начинаем перетаскивание всех выделенных отсеков
+                      if (newSelected.size > 1) {
+                        handleMouseDown(e, comp.id, true); // forceMultiple = true
+                      } else if (newSelected.size === 1) {
+                        handleMouseDown(e, comp.id, false);
+                      }
                     } else {
-                      if (selectedCompartments.has(comp.id) && selectedCompartments.size > 1) handleMouseDown(e, comp.id);
-                      else { setSelectedCompartments(new Set([comp.id])); handleMouseDown(e, comp.id); }
+                      if (selectedCompartments.has(comp.id) && selectedCompartments.size > 1) {
+                        // Клик на уже выделенный отсек при множественном выделении - перетаскиваем все
+                        handleMouseDown(e, comp.id, true); // forceMultiple = true
+                      } else {
+                        // Одиночный клик - выбираем только этот отсек
+                        setSelectedCompartments(new Set([comp.id]));
+                        handleMouseDown(e, comp.id, false);
+                      }
                     }
                   }} className="cursor-move">
                     {/* Базовый прямоугольник отсека */}
@@ -441,6 +464,55 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
                   fill="rgba(59, 130, 246, 0.2)" stroke="#3b82f6" strokeWidth="1" strokeDasharray="4,4" pointerEvents="none" />
               )}
             </svg>
+          </div>
+          
+          {/* Легенда цветов отсеков */}
+          <div className="mt-3 p-3 bg-slate-900/50 rounded border border-slate-700">
+            <div className="text-xs font-bold text-slate-300 mb-2">🎨 Расшифровка цветов отсеков:</div>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded border border-slate-600" style={{backgroundColor: '#7f1d1d'}}></div>
+                <span className="text-slate-300">Вооружение</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded border border-slate-600" style={{backgroundColor: '#78350f'}}></div>
+                <span className="text-slate-300">Боезапас</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded border border-slate-600" style={{backgroundColor: '#1e3a8a'}}></div>
+                <span className="text-slate-300">ГЭУ / Руль / Винты</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded border border-slate-600" style={{backgroundColor: '#713f12'}}></div>
+                <span className="text-slate-300">Мостик / Управление</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded border border-slate-600" style={{backgroundColor: '#155e75'}}></div>
+                <span className="text-slate-300">Топливо</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded border border-slate-600" style={{backgroundColor: '#14532d'}}></div>
+                <span className="text-slate-300">Остальные отсеки</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded border border-slate-600" style={{backgroundColor: '#374151'}}></div>
+                <span className="text-slate-300">Уничтожен</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded border border-slate-600" style={{backgroundColor: '#d1d5db'}}></div>
+                <span className="text-slate-300">Повреждён</span>
+              </div>
+            </div>
+            <div className="mt-2 pt-2 border-t border-slate-700 text-xs text-slate-400">
+              <div className="flex items-center gap-2">
+                <span>💧</span>
+                <span>Затопление</span>
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <span>🔥</span>
+                <span>Пожар</span>
+              </div>
+            </div>
           </div>
         </div>
 

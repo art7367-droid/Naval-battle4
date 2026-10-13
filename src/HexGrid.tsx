@@ -81,7 +81,7 @@ export default function HexGrid({
               <g key={`${q}-${r}`} transform={`translate(${pos.x}, ${pos.y})`}
                 onClick={() => clickable && onCellClick(q, r)} className={clickable ? 'cursor-crosshair' : ''}>
                 <polygon points={getHexPoints(HEX_SIZE - 1)}
-                  className={`fill-slate-700/40 stroke-slate-500/60 stroke-[1px] transition-all duration-200 ${clickable ? 'hover:fill-cyan-500/40 hover:stroke-cyan-300' : ''} ${isReachable ? 'fill-green-500/30 stroke-green-400' : ''} ${isMovementTarget ? 'fill-amber-500/40 stroke-amber-400' : ''}`} />
+                  className={`fill-slate-700/40 stroke-slate-500/60 stroke-[1px] transition-all duration-200 ${clickable ? 'hover:fill-cyan-500/40 hover:stroke-cyan-300' : ''} ${isReachable ? 'fill-green-500/30 stroke-green-400' : ''} ${isMovementTarget ? 'fill-cyan-500/40 stroke-cyan-400' : ''}`} />
                 {isSelected && (
                   <circle cx={0} cy={0} r={HEX_SIZE * 0.6} fill="none" stroke="#fbbf24" strokeWidth="2" strokeDasharray="3,3" />
                 )}
@@ -144,7 +144,7 @@ export default function HexGrid({
                 y1={fromPos.y}
                 x2={toPos.x}
                 y2={toPos.y}
-                stroke="#fbbf24"
+                stroke="#06b6d4"
                 strokeWidth="2"
                 strokeDasharray="8,4"
                 opacity="0.8"
@@ -152,9 +152,9 @@ export default function HexGrid({
               />
               {/* Маркер цели */}
               <g transform={`translate(${toPos.x}, ${toPos.y})`}>
-                <circle cx={0} cy={0} r={HEX_SIZE * 0.6} fill="#fbbf24" opacity="0.3" />
-                <circle cx={0} cy={0} r={HEX_SIZE * 0.4} fill="none" stroke="#fbbf24" strokeWidth="2" />
-                <text x={0} y={0} textAnchor="middle" dominantBaseline="middle" fontSize={HEX_SIZE * 0.5} fill="#fbbf24" fontWeight="bold">🎯</text>
+                <circle cx={0} cy={0} r={HEX_SIZE * 0.6} fill="#06b6d4" opacity="0.3" />
+                <circle cx={0} cy={0} r={HEX_SIZE * 0.4} fill="none" stroke="#06b6d4" strokeWidth="2" />
+                <text x={0} y={0} textAnchor="middle" dominantBaseline="middle" fontSize={HEX_SIZE * 0.5} fill="#06b6d4" fontWeight="bold">🎯</text>
               </g>
             </g>
           );

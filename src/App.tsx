@@ -13,8 +13,8 @@ import {
 import { resetAI, generateAIShots, generateAIMoves, updateAIAfterShots } from './ai';
 import { processDamagePropagation } from './damagePropagation';
 import HexGrid from './HexGrid';
-import ShipDetailView from './ShipDetailView';
 import BattleLog from './components/BattleLog';
+import BattleShipDetailCard from './components/BattleShipDetailCard';
 import ShipDatabaseManager from './components/ShipDatabaseManager';
 import ShipSelectionScreen from './components/ShipSelectionScreen';
 
@@ -714,9 +714,11 @@ function App() {
 
         {phase !== 'placement' && (
           <div className="flex flex-col lg:flex-row justify-center gap-4 items-start">
-            <ShipDetailView ship={selectedShipForDetail} hitMarkers={hitMarkers} />
             <div className="flex flex-col gap-4">
-              <HexGrid
+              <BattleShipDetailCard ship={selectedShipForDetail} hitMarkers={hitMarkers} />
+              {showBattleLog && <BattleLog entries={battleLog} title="Журнал боя" />}
+            </div>
+            <HexGrid
               playerShips={playerShips}
               enemyShips={enemyShips}
               phase={phase}
@@ -733,8 +735,6 @@ function App() {
               onCellClick={handleCellClick}
               onShipClick={handleShipClickForDetail}
             />
-            {showBattleLog && <BattleLog entries={battleLog} title="Журнал боя" />}
-            </div>
           </div>
         )}
 

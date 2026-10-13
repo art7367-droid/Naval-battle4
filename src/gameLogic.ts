@@ -146,8 +146,13 @@ export function executeShots(
     const distance = hexDistance(attacker.q, attacker.r, shot.targetQ, shot.targetR);
     if (distance > attacker.range) continue;
     const targetShip = newShips.find(s => s.q === shot.targetQ && s.r === shot.targetR && s.currentHP > 0);
+    
+    // Бонус к точности за близкую дистанцию
+    const accuracyBonus = distance <= 3 ? 20 : distance <= 6 ? 10 : 0;
+    const effectiveAccuracy = Math.min(95, attacker.accuracy + accuracyBonus);
+    
     const hitRoll = Math.random() * 100;
-    const hit = hitRoll < attacker.accuracy;
+    const hit = hitRoll < effectiveAccuracy;
 
     if (hit && targetShip) {
       newShips = newShips.map(ship => {
@@ -161,10 +166,25 @@ export function executeShots(
         const updatedCompartment = { ...updatedShip.compartments[compIndex] };
         const penetration = attacker.damage;
         const armor = updatedCompartment.armor;
+        
+        // Бонус за близкую дистанцию
+        const distanceBonus = distance <= 3 ? 1.5 : distance <= 6 ? 1.2 : 1.0;
+        const effectivePenetration = penetration * distanceBonus;
+        
         let effectiveDamage = attacker.damage;
-        if (penetration < armor * 0.5) effectiveDamage = Math.floor(attacker.damage * 0.1);
-        else if (penetration < armor) effectiveDamage = Math.floor(attacker.damage * 0.5);
-        const compartmentDamage = Math.floor(effectiveDamage * 0.6);
+        
+        // Улучшенная система пробития брони
+        if (effectivePenetration >= armor) {
+          effectiveDamage = Math.floor(attacker.damage * distanceBonus); // Полное пробитие
+        } else if (effectivePenetration >= armor * 0.7) {
+          effectiveDamage = Math.floor(attacker.damage * 0.8 * distanceBonus); // Частичное пробитие
+        } else if (effectivePenetration >= armor * 0.4) {
+          effectiveDamage = Math.floor(attacker.damage * 0.5 * distanceBonus); // Слабое пробитие
+        } else {
+          effectiveDamage = Math.floor(attacker.damage * 0.3 * distanceBonus); // Минимальный урон
+        }
+        
+        const compartmentDamage = Math.floor(effectiveDamage * 0.8);
         updatedCompartment.currentHP = Math.max(0, updatedCompartment.currentHP - compartmentDamage);
         if (updatedCompartment.currentHP <= 0) updatedCompartment.status = 'destroyed';
         else if (updatedCompartment.currentHP < updatedCompartment.maxHP * 0.5) updatedCompartment.status = 'damaged';

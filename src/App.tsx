@@ -72,9 +72,49 @@ function App() {
     // Создаём корабли с учётом реальной длины из базы данных
     const pShips = playerDBShips.map((dbShip, index) => {
       const shipLength = dbShip.length || (dbShip.class === 'battleship' ? 250 : dbShip.class === 'cruiser' ? 200 : 115);
-      const compartments = createCompartments(dbShip.class as any, shipLength);
+      
+      // Используем compartmentData из БД если есть
+      let compartments;
+      if (dbShip.compartmentData?.compartments && dbShip.compartmentData.compartments.length > 0) {
+        compartments = dbShip.compartmentData.compartments.map(c => ({
+          id: c.id,
+          position: c.position as any,
+          deck: c.deck as any,
+          side: c.side as any,
+          type: c.type as any,
+          name: c.name,
+          maxHP: c.maxHP,
+          currentHP: c.currentHP,
+          status: c.status as any,
+          watertight: c.watertight,
+          armor: c.armor,
+          flooded: 0,
+          fire: 0,
+          components: [],
+          adjacentIds: [],
+          lengthMeters: 10,
+          positionFromBow: c.gridX * 5
+        }));
+      } else {
+        compartments = createCompartments(dbShip.class as any, shipLength);
+      }
+      
       const stats = calculateShipStats(compartments);
       const totalHP = compartments.reduce((sum: number, c: any) => sum + c.maxHP, 0);
+      
+      // Увеличиваем точность и урон в зависимости от класса
+      let accuracy = 70;
+      let damage = 30;
+      if (dbShip.class === 'battleship') {
+        accuracy = 80;
+        damage = 45;
+      } else if (dbShip.class === 'cruiser') {
+        accuracy = 75;
+        damage = 35;
+      } else {
+        accuracy = 70;
+        damage = 25;
+      }
       
       return {
         id: index + 1,
@@ -85,8 +125,8 @@ function App() {
         q: Math.floor(Math.random() * 8),
         r: Math.floor(Math.random() * 25),
         heading: 0 as any,
-        accuracy: 75,
-        damage: 35,
+        accuracy,
+        damage,
         speed: Math.round(dbShip.speed / 10),
         range: dbShip.range,
         hasMoved: false,
@@ -105,9 +145,49 @@ function App() {
     
     const eShips = enemyDBShips.map((dbShip, index) => {
       const shipLength = dbShip.length || (dbShip.class === 'battleship' ? 250 : dbShip.class === 'cruiser' ? 200 : 115);
-      const compartments = createCompartments(dbShip.class as any, shipLength);
+      
+      // Используем compartmentData из БД если есть
+      let compartments;
+      if (dbShip.compartmentData?.compartments && dbShip.compartmentData.compartments.length > 0) {
+        compartments = dbShip.compartmentData.compartments.map(c => ({
+          id: c.id,
+          position: c.position as any,
+          deck: c.deck as any,
+          side: c.side as any,
+          type: c.type as any,
+          name: c.name,
+          maxHP: c.maxHP,
+          currentHP: c.currentHP,
+          status: c.status as any,
+          watertight: c.watertight,
+          armor: c.armor,
+          flooded: 0,
+          fire: 0,
+          components: [],
+          adjacentIds: [],
+          lengthMeters: 10,
+          positionFromBow: c.gridX * 5
+        }));
+      } else {
+        compartments = createCompartments(dbShip.class as any, shipLength);
+      }
+      
       const stats = calculateShipStats(compartments);
       const totalHP = compartments.reduce((sum: number, c: any) => sum + c.maxHP, 0);
+      
+      // Увеличиваем точность и урон в зависимости от класса
+      let accuracy = 70;
+      let damage = 30;
+      if (dbShip.class === 'battleship') {
+        accuracy = 80;
+        damage = 45;
+      } else if (dbShip.class === 'cruiser') {
+        accuracy = 75;
+        damage = 35;
+      } else {
+        accuracy = 70;
+        damage = 25;
+      }
       
       return {
         id: index + 100,
@@ -118,8 +198,8 @@ function App() {
         q: 25 - Math.floor(Math.random() * 8),
         r: Math.floor(Math.random() * 25),
         heading: 3 as any,
-        accuracy: 75,
-        damage: 35,
+        accuracy,
+        damage,
         speed: Math.round(dbShip.speed / 10),
         range: dbShip.range,
         hasMoved: false,
@@ -326,19 +406,19 @@ function App() {
         }
       });
       
-      // Добавляем попадания в журнал
-      const hitLogs: BattleLogEntry[] = playerResult.shots
-        .filter(s => s.hit)
-        .map(s => ({
-          id: `log_${Date.now()}_${Math.random()}`,
-          turn: turnNumber,
-          timestamp: Date.now(),
-          type: 'shot_hit' as const,
-          shipId: s.shipId,
-          shipName: s.shipName,
-          message: `🎯 ${s.shipName} попал в ${s.targetShipName} (${s.damage} урона)`,
-          severity: 'info' as const
-        }));
+      // Добавляем попадания и промахи в журнал
+      const playerShotLogs: BattleLogEntry[] = playerResult.shots.map(s => ({
+        id: `log_${Date.now()}_${Math.random()}`,
+        turn: turnNumber,
+        timestamp: Date.now(),
+        type: s.hit ? 'shot_hit' as const : 'shot_miss' as const,
+        shipId: s.shipId,
+        shipName: s.shipName,
+        message: s.hit 
+          ? `🎯 ${s.shipName} попал в ${s.targetShipName} (${s.damage} урона)`
+          : `💨 ${s.shipName} промахнулся по (${s.targetQ},${s.targetR})`,
+        severity: s.hit ? 'info' as const : 'warning' as const
+      }));
 
       // Выстрелы противника
       const enemyShotTargets = generateAIShots(enemyShips, playerShips);
@@ -367,20 +447,6 @@ function App() {
       // Обновляем маркеры попаданий
       setHitMarkers(prev => [...prev, ...playerHitMarkers, ...enemyHitMarkers]);
       
-      // Добавляем попадания врага в журнал
-      const enemyHitLogs: BattleLogEntry[] = enemyResult.shots
-        .filter(s => s.hit)
-        .map(s => ({
-          id: `log_${Date.now()}_${Math.random()}`,
-          turn: turnNumber,
-          timestamp: Date.now(),
-          type: 'shot_hit' as const,
-          shipId: s.shipId,
-          shipName: s.shipName,
-          message: `🎯 Вражеский ${s.shipName} попал в ${s.targetShipName} (${s.damage} урона)`,
-          severity: 'warning' as const
-        }));
-
       updateAIAfterShots(enemyResult.shots, enemyResult.updatedShips);
 
       // Обработка распространения повреждений
@@ -396,11 +462,25 @@ function App() {
       setPlayerShips(updatedPlayerShips);
       setEnemyShips(updatedEnemyShips);
       
+      // Добавляем попадания и промахи врага в журнал
+      const enemyShotLogs: BattleLogEntry[] = enemyResult.shots.map(s => ({
+        id: `log_${Date.now()}_${Math.random()}`,
+        turn: turnNumber,
+        timestamp: Date.now(),
+        type: s.hit ? 'shot_hit' as const : 'shot_miss' as const,
+        shipId: s.shipId,
+        shipName: s.shipName,
+        message: s.hit 
+          ? `🎯 Вражеский ${s.shipName} попал в ${s.targetShipName} (${s.damage} урона)`
+          : `💨 Вражеский ${s.shipName} промахнулся`,
+        severity: s.hit ? 'critical' as const : 'warning' as const
+      }));
+      
       // Обновляем журнал боя
       setBattleLog(prev => [
         ...prev,
-        ...hitLogs,
-        ...enemyHitLogs,
+        ...playerShotLogs,
+        ...enemyShotLogs,
         ...propagationResult.allLogs
       ]);
 

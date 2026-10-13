@@ -51,7 +51,7 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
   const [selectionEnd, setSelectionEnd] = useState<GridPosition | null>(null);
   const [showGrid, setShowGrid] = useState(true);
   const [showCompartments, setShowCompartments] = useState(true);
-  const [compartmentOpacity, setCompartmentOpacity] = useState(0.7);
+  const [compartmentOpacity, setCompartmentOpacity] = useState(0.6);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);

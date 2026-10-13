@@ -556,6 +556,12 @@ interface BattleShipDetailCardProps {
       - Позиционирование идентично ShipDetailCard (те же координаты)
       - Прозрачность изображения: 60% (opacity: 0.6) по умолчанию
       - Заголовок секции изменен на "Схема повреждения корабля"
+    - **Прозрачность отсеков**:
+      - Изменена по умолчанию с 70% на 60% во всех редакторах
+      - ShipDetailCard.tsx: compartmentOpacity = 0.6
+      - GridCompartmentEditor.tsx: compartmentOpacity = 0.6
+      - ShipSchematic.tsx: все opacity={0.7} → opacity={0.6}
+      - ShipEditor.tsx: opacity={0.7} → opacity={0.6}
 
 ---
 

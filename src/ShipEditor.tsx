@@ -92,7 +92,7 @@ export default function ShipEditor({ compartments, onCompartmentsChange }: ShipE
         {compartments.map(comp => (
           <g key={comp.id}>
             <rect x={10} y={10} width={canvasWidth - 20} height={canvasHeight - 20}
-              fill={getStatusColor(comp)} opacity={0.7}
+              fill={getStatusColor(comp)} opacity={0.6}
               stroke={selectedCompartment === comp.id ? '#fbbf24' : '#475569'}
               strokeWidth={selectedCompartment === comp.id ? 2 : 1}
               onClick={() => handleCompartmentClick(comp.id)} className="cursor-pointer" />

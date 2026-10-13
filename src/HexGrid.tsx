@@ -130,35 +130,7 @@ export default function HexGrid({
           );
         })}
 
-        {/* Визуализация приказов на движение (отображается в фазах movement и planning) */}
-        {(phase === 'movement' || phase === 'planning') && Array.from(movementOrders.entries()).map(([shipId, dest]) => {
-          const ship = playerShips.find(s => s.id === shipId);
-          if (!ship) return null;
-          const fromPos = getHexPosition(ship.q, ship.r, HEX_SIZE);
-          const toPos = getHexPosition(dest.q, dest.r, HEX_SIZE);
-          return (
-            <g key={`order-${shipId}`}>
-              {/* Линия от корабля к цели */}
-              <line
-                x1={fromPos.x}
-                y1={fromPos.y}
-                x2={toPos.x}
-                y2={toPos.y}
-                stroke="#06b6d4"
-                strokeWidth="2"
-                strokeDasharray="8,4"
-                opacity="0.8"
-                style={{ pointerEvents: 'none' }}
-              />
-              {/* Маркер цели */}
-              <g transform={`translate(${toPos.x}, ${toPos.y})`}>
-                <circle cx={0} cy={0} r={HEX_SIZE * 0.6} fill="#06b6d4" opacity="0.3" />
-                <circle cx={0} cy={0} r={HEX_SIZE * 0.4} fill="none" stroke="#06b6d4" strokeWidth="2" />
-                <text x={0} y={0} textAnchor="middle" dominantBaseline="middle" fontSize={HEX_SIZE * 0.5} fill="#06b6d4" fontWeight="bold">🎯</text>
-              </g>
-            </g>
-          );
-        })}
+
 
         {/* Анимация выстрелов */}
         {shotAnimations.map((anim) => {

@@ -1,5 +1,5 @@
 import { Ship, Compartment, getCompartmentTypeColor, getCompartmentTypeName } from '../types';
-import ShipSchematic from '../ShipSchematic';
+import BattleShipSchematic from './BattleShipSchematic';
 
 interface BattleShipDetailCardProps {
   ship: Ship | null;
@@ -49,7 +49,7 @@ export default function BattleShipDetailCard({ ship, hitMarkers = [] }: BattleSh
       {/* Схема отсеков */}
       <div className="mb-3 p-2 bg-slate-900/50 rounded border border-slate-700">
         <div className="text-xs font-bold text-slate-300 mb-2">📐 Схема отсеков:</div>
-        <ShipSchematic ship={ship} hitMarkers={hitMarkers} />
+        <BattleShipSchematic ship={ship} hitMarkers={hitMarkers} />
       </div>
 
       {/* Характеристики */}

@@ -106,7 +106,9 @@ function App() {
           components: [],
           adjacentIds: [],
           lengthMeters: 10,
-          positionFromBow: c.gridX * 5
+          positionFromBow: c.gridX * 5,
+          gridX: c.gridX,
+          gridY: c.gridY
         }));
       } else {
         console.log(`🚢 ${dbShip.name}: Нет данных в БД, создаю ${shipLength}м корабль автоматически`);
@@ -180,7 +182,9 @@ function App() {
           components: [],
           adjacentIds: [],
           lengthMeters: 10,
-          positionFromBow: c.gridX * 5
+          positionFromBow: c.gridX * 5,
+          gridX: c.gridX,
+          gridY: c.gridY
         }));
       } else {
         compartments = createCompartments(dbShip.class as any, shipLength);

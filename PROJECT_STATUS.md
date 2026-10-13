@@ -562,6 +562,7 @@ interface BattleShipDetailCardProps {
       - GridCompartmentEditor.tsx: compartmentOpacity = 0.6
       - ShipSchematic.tsx: все opacity={0.7} → opacity={0.6}
       - ShipEditor.tsx: opacity={0.7} → opacity={0.6}
+      - BattleShipSchematic.tsx: opacity={0.8} → opacity={0.6} (строка 65)
 
 ---
 

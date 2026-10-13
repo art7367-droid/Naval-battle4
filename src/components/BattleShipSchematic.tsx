@@ -62,7 +62,7 @@ export default function BattleShipSchematic({ ship, hitMarkers = [] }: BattleShi
               width={compWidth}
               height={compHeight}
               fill={color}
-              opacity={0.8}
+              opacity={0.6}
               stroke="#475569"
               strokeWidth="0.5"
             />

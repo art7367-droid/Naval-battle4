@@ -94,7 +94,7 @@ export default function ShipSchematic({
               return (
                 <g key={`deck-${comp.id}`}>
                   <rect x={x} y={y} width={compartmentWidth - 1} height={deckHeight}
-                    fill={color} opacity={0.7} stroke="#475569" strokeWidth="0.5" />
+                    fill={color} opacity={0.6} stroke="#475569" strokeWidth="0.5" />
                   {comp.flooded > 0 && (
                     <g>
                       <circle cx={x + compartmentWidth / 2} cy={y + deckHeight / 2} r={deckHeight * 0.4} fill="#1e40af" opacity="0.8" />
@@ -123,7 +123,7 @@ export default function ShipSchematic({
           return (
             <g key={comp.id}>
               <rect x={x} y={y} width={compartmentWidth - 1} height={deckHeight}
-                fill={color} opacity={0.7} stroke="#475569" strokeWidth="0.5" />
+                fill={color} opacity={0.6} stroke="#475569" strokeWidth="0.5" />
               {comp.flooded > 0 && (
                 <g>
                   <circle cx={x + compartmentWidth / 2} cy={y + deckHeight / 2} r={deckHeight * 0.4} fill="#1e40af" opacity="0.8" />
@@ -152,7 +152,7 @@ export default function ShipSchematic({
               return (
                 <g key={comp.id}>
                   <rect x={x} y={y} width={compartmentWidth - 1} height={deckHeight}
-                    fill={color} opacity={0.7} stroke="#475569" strokeWidth="0.5" />
+                    fill={color} opacity={0.6} stroke="#475569" strokeWidth="0.5" />
                   {comp.flooded > 0 && (
                     <g>
                       <circle cx={x + compartmentWidth / 2} cy={y + deckHeight / 2} r={deckHeight * 0.4} fill="#1e40af" opacity="0.8" />
@@ -181,7 +181,7 @@ export default function ShipSchematic({
           return (
             <g key={comp.id}>
               <rect x={x} y={y} width={compartmentWidth - 1} height={deckHeight}
-                fill={color} opacity={0.7} stroke="#475569" strokeWidth="0.5" />
+                fill={color} opacity={0.6} stroke="#475569" strokeWidth="0.5" />
               {comp.flooded > 0 && (
                 <g>
                   <circle cx={x + compartmentWidth / 2} cy={y + deckHeight / 2} r={deckHeight * 0.4} fill="#1e40af" opacity="0.8" />
@@ -228,7 +228,7 @@ export default function ShipSchematic({
           return (
             <g key={`top-${comp.id}`}>
               <rect x={x} y={y} width={compartmentWidth - 1} height={30}
-                fill={color} opacity={0.7} stroke="#475569" strokeWidth="0.5" />
+                fill={color} opacity={0.6} stroke="#475569" strokeWidth="0.5" />
               {comp.flooded > 0 && (
                 <g>
                   <circle cx={x + compartmentWidth / 2} cy={y + 15} r={12} fill="#1e40af" opacity="0.8" />

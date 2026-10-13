@@ -116,6 +116,8 @@ export interface Ship {
   draft?: number;
   displacementStandard?: number;
   displacementFull?: number;
+  backgroundImage?: string;
+  backgroundPosition?: { x: number; y: number };
 }
 
 export type Heading = 0 | 1 | 2 | 3 | 4 | 5;

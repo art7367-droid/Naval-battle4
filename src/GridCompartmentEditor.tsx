@@ -20,7 +20,7 @@ export default function GridCompartmentEditor({
   const [draggingCompartment, setDraggingCompartment] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState<GridPosition>({ x: 0, y: 0 });
   const [dragPosition, setDragPosition] = useState<GridPosition>({ x: 0, y: 0 });
-  const [compartmentOpacity, setCompartmentOpacity] = useState(0.7);
+  const [compartmentOpacity, setCompartmentOpacity] = useState(0.6);
   const [showGrid, setShowGrid] = useState(true);
   const [showCompartments, setShowCompartments] = useState(true);
   const [backgroundPosition, setBackgroundPosition] = useState<GridPosition>({ x: 0, y: 0 });

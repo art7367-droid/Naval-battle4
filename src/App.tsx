@@ -106,7 +106,9 @@ function App() {
           components: [],
           adjacentIds: [],
           lengthMeters: 10,
-          positionFromBow: c.gridX * 5
+          positionFromBow: c.gridX * 5,
+          gridX: c.gridX,
+          gridY: c.gridY
         }));
       } else {
         console.log(`🚢 ${dbShip.name}: Нет данных в БД, создаю ${shipLength}м корабль автоматически`);
@@ -154,6 +156,8 @@ function App() {
         draft: dbShip.draft,
         displacementStandard: dbShip.displacementStandard,
         displacementFull: dbShip.displacementFull,
+        backgroundImage: dbShip.compartmentData?.backgroundImage,
+        backgroundPosition: dbShip.compartmentData?.backgroundPosition,
       };
     });
     
@@ -180,7 +184,9 @@ function App() {
           components: [],
           adjacentIds: [],
           lengthMeters: 10,
-          positionFromBow: c.gridX * 5
+          positionFromBow: c.gridX * 5,
+          gridX: c.gridX,
+          gridY: c.gridY
         }));
       } else {
         compartments = createCompartments(dbShip.class as any, shipLength);
@@ -227,6 +233,8 @@ function App() {
         draft: dbShip.draft,
         displacementStandard: dbShip.displacementStandard,
         displacementFull: dbShip.displacementFull,
+        backgroundImage: dbShip.compartmentData?.backgroundImage,
+        backgroundPosition: dbShip.compartmentData?.backgroundPosition,
       };
     });
     
@@ -509,6 +517,54 @@ function App() {
     }
   }, [playerShips, currentShipIndex]);
 
+  const nextTurn = useCallback(() => {
+    setTurnNumber(t => t + 1);
+    setPhase('movement');
+    setCurrentShipIndex(0);
+    setSelectedTarget(null);
+    setPlayerShotTargetsWithRef([]);
+    setPlayerShots([]);
+    setEnemyShots([]);
+    setSelectedShipForMove(null);
+    setReachableHexes([]);
+    setHitMarkers([]); // Сбрасываем маркеры попаданий между ходами
+    setMovementOrders(new Map()); // Сбрасываем приказы на движение
+    setShotAnimations([]); // Сбрасываем анимацию выстрелов
+    
+    setPlayerShips(prev => prev.map(s => ({ ...s, hasMoved: false, hasFired: false })));
+    setEnemyShips(prev => prev.map(s => ({ ...s, hasMoved: false, hasFired: false })));
+    
+    setTimeout(() => {
+      setEnemyShips(prev => {
+        const moves = generateAIMoves(prev, playerShips);
+        let updated = [...prev];
+        
+        const newEnemyTrajectories: Trajectory[] = moves.map(move => {
+          const ship = prev.find(s => s.id === move.shipId);
+          const newHeading = ship ? getHeading(move.fromQ, move.fromR, move.toQ, move.toR) : 0;
+          return {
+            shipId: move.shipId,
+            path: [
+              { q: move.fromQ, r: move.fromR },
+              { q: move.toQ, r: move.toR }
+            ]
+          };
+        });
+        setEnemyTrajectories(prevTrajectories => [...prevTrajectories, ...newEnemyTrajectories]);
+        
+        for (const move of moves) {
+          const newHeading = getHeading(move.fromQ, move.fromR, move.toQ, move.toR);
+          updated = updated.map(s => 
+            s.id === move.shipId ? { ...s, q: move.toQ, r: move.toR, heading: newHeading, hasMoved: true } : s
+          );
+        }
+        return updated;
+      });
+      
+      setMessage(`Ход ${turnNumber + 1}: Фаза движения. Выберите корабль для перемещения.`);
+    }, 500);
+  }, [playerShips, turnNumber]);
+
   const executePhase = useCallback(() => {
     console.log(`🚀 executePhase вызван!`);
     console.log(`📊 playerShotTargetsRef.current:`, playerShotTargetsRef.current);
@@ -571,6 +627,9 @@ function App() {
       
       setPlayerShips(updatedPlayerShips);
       setEnemyShips(updatedEnemyShips);
+      
+      // Очищаем приказы на движение после их выполнения
+      setMovementOrders(new Map());
       
       console.log(`🔫 Выполнение выстрелов игрока: ${currentTargets.length} целей`);
       console.log(`📋 Список целей:`, currentTargets);
@@ -732,62 +791,21 @@ function App() {
         resultMsg += '\n🏆 Победа! Все корабли противника потоплены!';
         setPhase('gameOver');
       } else {
-        resultMsg += '\nНажмите "Следующий ход" для продолжения';
+        resultMsg += '\nПереход к следующему ходу...';
       }
       
       setMessage(resultMsg);
       setShotAnimations([]); // Очищаем анимацию выстрелов
+      
+      // Автоматический переход к следующему ходу через 2 секунды (если игра не окончена)
+      if (phase !== 'gameOver') {
+        setTimeout(() => {
+          nextTurn();
+        }, 2000);
+      }
       }, 1000); // Конец setTimeout для анимации выстрелов
     }, 1500); // Конец setTimeout для анимации перемещения
-  }, [playerShotTargets, playerShips, enemyShips, turnNumber, movementOrders]);
-
-  const nextTurn = useCallback(() => {
-    setTurnNumber(t => t + 1);
-    setPhase('movement');
-    setCurrentShipIndex(0);
-    setSelectedTarget(null);
-    setPlayerShotTargetsWithRef([]);
-    setPlayerShots([]);
-    setEnemyShots([]);
-    setSelectedShipForMove(null);
-    setReachableHexes([]);
-    setHitMarkers([]); // Сбрасываем маркеры попаданий между ходами
-    setMovementOrders(new Map()); // Сбрасываем приказы на движение
-    setShotAnimations([]); // Сбрасываем анимацию выстрелов
-    
-    setPlayerShips(prev => prev.map(s => ({ ...s, hasMoved: false, hasFired: false })));
-    setEnemyShips(prev => prev.map(s => ({ ...s, hasMoved: false, hasFired: false })));
-    
-    setTimeout(() => {
-      setEnemyShips(prev => {
-        const moves = generateAIMoves(prev, playerShips);
-        let updated = [...prev];
-        
-        const newEnemyTrajectories: Trajectory[] = moves.map(move => {
-          const ship = prev.find(s => s.id === move.shipId);
-          const newHeading = ship ? getHeading(move.fromQ, move.fromR, move.toQ, move.toR) : 0;
-          return {
-            shipId: move.shipId,
-            path: [
-              { q: move.fromQ, r: move.fromR },
-              { q: move.toQ, r: move.toR }
-            ]
-          };
-        });
-        setEnemyTrajectories(prevTrajectories => [...prevTrajectories, ...newEnemyTrajectories]);
-        
-        for (const move of moves) {
-          const newHeading = getHeading(move.fromQ, move.fromR, move.toQ, move.toR);
-          updated = updated.map(s => 
-            s.id === move.shipId ? { ...s, q: move.toQ, r: move.toR, heading: newHeading, hasMoved: true } : s
-          );
-        }
-        return updated;
-      });
-      
-      setMessage(`Ход ${turnNumber + 1}: Фаза движения. Выберите корабль для перемещения.`);
-    }, 500);
-  }, [playerShips, turnNumber]);
+  }, [playerShotTargets, playerShips, enemyShips, turnNumber, movementOrders, nextTurn]);
 
   const resetGame = () => {
     setScreen('menu');
@@ -933,14 +951,7 @@ function App() {
               ⏭️ Пропустить выстрел
             </button>
           )}
-          {phase === 'results' && (
-            <button
-              onClick={nextTurn}
-              className="px-5 py-2 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg font-semibold hover:from-purple-600 hover:to-pink-700 transition-all shadow-lg"
-            >
-              ➡️ Следующий ход
-            </button>
-          )}
+
           {(phase === 'results' || phase === 'gameOver') && battleLog.length > 0 && (
             <button
               onClick={() => setShowBattleLog(!showBattleLog)}
@@ -1022,7 +1033,7 @@ function App() {
               <BattleShipDetailCard ship={selectedShipForDetail} hitMarkers={hitMarkers} />
               {showBattleLog && <BattleLog entries={battleLog} title="Журнал боя" />}
             </div>
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-auto">
               <HexGrid
                 playerShips={playerShips}
                 enemyShips={enemyShips}

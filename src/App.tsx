@@ -586,8 +586,8 @@ function App() {
 
   // Экран боя
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white p-4">
-      <div className="max-w-[1400px] mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
+      <div className="w-full px-2">
         <div className="text-center mb-4">
           <div className="flex justify-between items-center mb-2">
             <button
@@ -713,7 +713,7 @@ function App() {
         )}
 
         {phase !== 'placement' && (
-          <div className="flex flex-col lg:flex-row justify-start gap-4 items-start px-4">
+          <div className="flex flex-col lg:flex-row justify-start gap-4 items-start">
             <div className="flex flex-col gap-4 flex-shrink-0">
               <BattleShipDetailCard ship={selectedShipForDetail} hitMarkers={hitMarkers} />
               {showBattleLog && <BattleLog entries={battleLog} title="Журнал боя" />}

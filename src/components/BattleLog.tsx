@@ -31,7 +31,7 @@ export default function BattleLog({ entries, title = 'Журнал боя' }: Ba
   const sortedEntries = [...entries].sort((a, b) => b.timestamp - a.timestamp);
 
   return (
-    <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-600 w-[750px]">
+    <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-600 w-[600px]">
       <h3 className="text-sm font-bold text-cyan-300 mb-2 flex items-center gap-2">
         📜 {title}<span className="text-xs text-slate-400">({entries.length} записей)</span>
       </h3>

@@ -46,9 +46,9 @@ export default function BattleShipDetailCard({ ship, hitMarkers = [] }: BattleSh
         </div>
       </div>
 
-      {/* Схема отсеков */}
+      {/* Схема повреждения корабля */}
       <div className="mb-3 p-2 bg-slate-900/50 rounded border border-slate-700">
-        <div className="text-xs font-bold text-slate-300 mb-2">📐 Схема отсеков:</div>
+        <div className="text-xs font-bold text-slate-300 mb-2">📐 Схема повреждения корабля:</div>
         <BattleShipSchematic ship={ship} hitMarkers={hitMarkers} />
       </div>
 

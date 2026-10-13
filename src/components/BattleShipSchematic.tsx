@@ -31,14 +31,14 @@ export default function BattleShipSchematic({ ship, hitMarkers = [] }: BattleShi
   
   return (
     <svg width={svgWidth} height={svgHeight} className="border border-slate-700 rounded bg-slate-900/50">
-      {/* Фоновое изображение корабля */}
+      {/* Фоновое изображение корабля - оригинальный размер, привязано к сетке, заблокировано */}
       {ship.backgroundImage && (
         <image 
           href={ship.backgroundImage} 
-          x={ship.backgroundPosition?.x || 0} 
-          y={ship.backgroundPosition?.y || 0} 
+          x={ship.backgroundPosition?.x || padding} 
+          y={ship.backgroundPosition?.y || padding} 
           opacity={0.8}
-          preserveAspectRatio="xMidYMid meet"
+          style={{ pointerEvents: 'none' }}
         />
       )}
       

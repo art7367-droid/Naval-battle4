@@ -534,8 +534,9 @@ interface BattleShipDetailCardProps {
       - Отступы: padding = 20px
     - **Фоновое изображение корабля**: 
       - Отображается backgroundImage из compartmentData
-      - Используется backgroundPosition для точного позиционирования
+      - Используется backgroundPosition для точного позиционирования (как в ShipDetailCard)
       - Прозрачность 0.8 для видимости отсеков поверх изображения
+      - preserveAspectRatio="xMidYMid meet" для корректного масштабирования
     - **Передача данных**: При создании кораблей из БД передаются поля gridX, gridY, backgroundImage и backgroundPosition
     - **Визуализация повреждений**: 
       - Цветовая кодировка по типу отсека (вооружение, ГЭУ, мостик и т.д.)
@@ -543,6 +544,11 @@ interface BattleShipDetailCardProps {
       - Маркеры попаданий (красные круги с числом)
     - **Линейка масштаба**: Добавлена линейка внизу схемы (как в ShipDetailCard) с метками каждые 20м
     - **Замена ShipSchematic**: BattleShipDetailCard теперь использует BattleShipSchematic вместо ShipSchematic для точного отображения
+    - **Исправление layout**: 
+      - BattleShipDetailCard увеличен до 750px (было 600px) для размещения схемы 712px
+      - BattleLog увеличен до 750px для соответствия
+      - HexGrid использует overflow-auto вместо overflow-hidden для предотвращения обрезания
+      - Левая колонка имеет flex-shrink-0 для предотвращения сжатия
 
 ---
 

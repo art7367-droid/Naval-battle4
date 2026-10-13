@@ -1033,7 +1033,7 @@ function App() {
               <BattleShipDetailCard ship={selectedShipForDetail} hitMarkers={hitMarkers} />
               {showBattleLog && <BattleLog entries={battleLog} title="Журнал боя" />}
             </div>
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-auto">
               <HexGrid
                 playerShips={playerShips}
                 enemyShips={enemyShips}

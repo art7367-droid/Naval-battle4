@@ -35,11 +35,10 @@ export default function BattleShipSchematic({ ship, hitMarkers = [] }: BattleShi
       {ship.backgroundImage && (
         <image 
           href={ship.backgroundImage} 
-          x={ship.backgroundPosition?.x || padding} 
-          y={ship.backgroundPosition?.y || padding} 
-          width={svgWidth - padding * 2}
-          height={svgHeight - padding * 2 - 40}
-          opacity={0.8} 
+          x={ship.backgroundPosition?.x || 0} 
+          y={ship.backgroundPosition?.y || 0} 
+          opacity={0.8}
+          preserveAspectRatio="xMidYMid meet"
         />
       )}
       

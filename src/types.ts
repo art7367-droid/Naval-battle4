@@ -192,13 +192,13 @@ export function createCompartments(shipType: ShipType, shipLengthMeters: number 
         baseHP = deck === 'upper' ? 15 : 25;
       }
       
-      let armor = 50;
+      let armor = 30;
       if (shipType === 'battleship') {
-        armor = deck === 'upper' ? 100 : deck === 'middle' ? 150 : 200;
+        armor = deck === 'upper' ? 50 : deck === 'middle' ? 75 : 100;
       } else if (shipType === 'cruiser') {
-        armor = deck === 'upper' ? 75 : deck === 'middle' ? 100 : 125;
+        armor = deck === 'upper' ? 40 : deck === 'middle' ? 60 : 80;
       } else {
-        armor = deck === 'upper' ? 25 : 75;
+        armor = deck === 'upper' ? 20 : 40;
       }
 
       compartments.push({

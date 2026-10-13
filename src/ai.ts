@@ -15,42 +15,26 @@ export function resetAI() {
 export function generateAIShots(
   attackerShips: Ship[],
   defenderShips: Ship[]
-): { shipId: number; targetQ: number; targetR: number }[] {
-  const shots: { shipId: number; targetQ: number; targetR: number }[] = [];
+): { shipId: number; targetShipId: number }[] {
+  const shots: { shipId: number; targetShipId: number }[] = [];
   const aliveShips = attackerShips.filter(s => s.currentHP > 0);
+  const aliveDefenders = defenderShips.filter(s => s.currentHP > 0);
 
   for (const ship of aliveShips) {
-    let targeted = false;
-    const damagedInRange = aiState.damagedShips.filter(t => hexDistance(ship.q, ship.r, t.q, t.r) <= ship.range);
+    // Находим все корабли противника в пределах дальности
+    const targetsInRange = aliveDefenders.filter(d => hexDistance(ship.q, ship.r, d.q, d.r) <= ship.range);
     
-    for (const target of damagedInRange) {
-      const key = `${target.q},${target.r}`;
-      if (!aiState.missedCells.has(key)) {
-        const targetShip = defenderShips.find(s => s.q === target.q && s.r === target.r && s.currentHP > 0);
-        if (targetShip) {
-          shots.push({ shipId: ship.id, targetQ: target.q, targetR: target.r });
-          targeted = true;
-          break;
-        }
-      }
-    }
-
-    if (!targeted) {
-      const available: { q: number; r: number }[] = [];
-      for (let r = 0; r < BOARD_SIZE; r++) {
-        for (let q = 0; q < BOARD_SIZE; q++) {
-          const key = `${q},${r}`;
-          if (!aiState.missedCells.has(key) && hexDistance(ship.q, ship.r, q, r) <= ship.range) {
-            available.push({ q, r });
-          }
-        }
-      }
-      if (available.length > 0) {
-        const target = available[Math.floor(Math.random() * available.length)];
-        shots.push({ shipId: ship.id, targetQ: target.q, targetR: target.r });
-      }
+    if (targetsInRange.length > 0) {
+      // Приоритет поврежденным кораблям
+      const damagedTargets = targetsInRange.filter(t => t.currentHP < t.maxHP);
+      const target = damagedTargets.length > 0 
+        ? damagedTargets[Math.floor(Math.random() * damagedTargets.length)]
+        : targetsInRange[Math.floor(Math.random() * targetsInRange.length)];
+      
+      shots.push({ shipId: ship.id, targetShipId: target.id });
     }
   }
+  
   return shots;
 }
 

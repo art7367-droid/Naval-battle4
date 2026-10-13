@@ -133,21 +133,70 @@ export function getReachableHexes(ship: Ship, allShips: Ship[]): { q: number; r:
 }
 
 export function executeShots(
-  shots: { shipId: number; targetQ: number; targetR: number }[],
+  shots: { shipId: number; targetShipId: number }[],
   attackerShips: Ship[],
   defenderShips: Ship[]
 ): { shots: Shot[]; updatedShips: Ship[] } {
   let newShips = defenderShips.map(s => ({ ...s }));
   const executedShots: Shot[] = [];
 
+  console.log(`🎯 executeShots: Получено ${shots.length} выстрелов`);
+  
   for (const shot of shots) {
     const attacker = attackerShips.find(s => s.id === shot.shipId);
-    if (!attacker || attacker.currentHP <= 0) continue;
-    const distance = hexDistance(attacker.q, attacker.r, shot.targetQ, shot.targetR);
-    if (distance > attacker.range) continue;
-    const targetShip = newShips.find(s => s.q === shot.targetQ && s.r === shot.targetR && s.currentHP > 0);
+    if (!attacker || attacker.currentHP <= 0) {
+      console.log(`⚠️ Выстрел от корабля ${shot.shipId} пропущен: корабль не найден или уничтожен`);
+      continue;
+    }
+    
+    // Находим корабль-цель по ID
+    const targetShip = newShips.find(s => s.id === shot.targetShipId && s.currentHP > 0);
+    
+    if (!targetShip) {
+      console.log(`⚠️ ${attacker.name}: Цель не найдена или уничтожена`);
+      executedShots.push({
+        shipId: attacker.id,
+        shipName: attacker.name,
+        shipType: attacker.type,
+        targetQ: 0,
+        targetR: 0,
+        hit: false,
+        damage: 0,
+        targetShipId: null,
+        targetShipName: null,
+      });
+      continue;
+    }
+    
+    const distance = hexDistance(attacker.q, attacker.r, targetShip.q, targetShip.r);
+    
+    console.log(`🔫 ${attacker.name} стреляет в ${targetShip.name}, дистанция: ${distance}, дальность: ${attacker.range}`);
+    
+    // Если цель вне дальности - промах
+    if (distance > attacker.range) {
+      console.log(`⚠️ ${attacker.name}: Цель вне дальности (${distance} > ${attacker.range})`);
+      executedShots.push({
+        shipId: attacker.id,
+        shipName: attacker.name,
+        shipType: attacker.type,
+        targetQ: targetShip.q,
+        targetR: targetShip.r,
+        hit: false,
+        damage: 0,
+        targetShipId: targetShip.id,
+        targetShipName: targetShip.name,
+      });
+      continue;
+    }
+    
+    // Бонус к точности за близкую дистанцию
+    const accuracyBonus = distance <= 3 ? 25 : distance <= 6 ? 15 : 5;
+    const effectiveAccuracy = Math.min(98, attacker.accuracy + accuracyBonus);
+    
     const hitRoll = Math.random() * 100;
-    const hit = hitRoll < attacker.accuracy;
+    const hit = hitRoll < effectiveAccuracy;
+    
+    console.log(`🎲 Бросок: ${hitRoll.toFixed(1)} vs ${effectiveAccuracy} → ${hit ? 'ПОПАДАНИЕ' : 'промах'}`);
 
     if (hit && targetShip) {
       newShips = newShips.map(ship => {
@@ -161,10 +210,25 @@ export function executeShots(
         const updatedCompartment = { ...updatedShip.compartments[compIndex] };
         const penetration = attacker.damage;
         const armor = updatedCompartment.armor;
+        
+        // Бонус за близкую дистанцию
+        const distanceBonus = distance <= 3 ? 2.0 : distance <= 6 ? 1.5 : 1.2;
+        const effectivePenetration = penetration * distanceBonus;
+        
         let effectiveDamage = attacker.damage;
-        if (penetration < armor * 0.5) effectiveDamage = Math.floor(attacker.damage * 0.1);
-        else if (penetration < armor) effectiveDamage = Math.floor(attacker.damage * 0.5);
-        const compartmentDamage = Math.floor(effectiveDamage * 0.6);
+        
+        // Улучшенная система пробития брони
+        if (effectivePenetration >= armor) {
+          effectiveDamage = Math.floor(attacker.damage * distanceBonus); // Полное пробитие
+        } else if (effectivePenetration >= armor * 0.5) {
+          effectiveDamage = Math.floor(attacker.damage * 0.7 * distanceBonus); // Частичное пробитие
+        } else if (effectivePenetration >= armor * 0.25) {
+          effectiveDamage = Math.floor(attacker.damage * 0.4 * distanceBonus); // Слабое пробитие
+        } else {
+          effectiveDamage = Math.floor(attacker.damage * 0.2 * distanceBonus); // Минимальный урон
+        }
+        
+        const compartmentDamage = Math.floor(effectiveDamage);
         updatedCompartment.currentHP = Math.max(0, updatedCompartment.currentHP - compartmentDamage);
         if (updatedCompartment.currentHP <= 0) updatedCompartment.status = 'destroyed';
         else if (updatedCompartment.currentHP < updatedCompartment.maxHP * 0.5) updatedCompartment.status = 'damaged';
@@ -199,14 +263,14 @@ export function executeShots(
       });
       executedShots.push({
         shipId: attacker.id, shipName: attacker.name, shipType: attacker.type,
-        targetQ: shot.targetQ, targetR: shot.targetR, hit: true, damage: attacker.damage,
+        targetQ: targetShip.q, targetR: targetShip.r, hit: true, damage: attacker.damage,
         targetShipId: targetShip.id, targetShipName: targetShip.name,
       });
     } else {
       executedShots.push({
         shipId: attacker.id, shipName: attacker.name, shipType: attacker.type,
-        targetQ: shot.targetQ, targetR: shot.targetR, hit: false, damage: 0,
-        targetShipId: null, targetShipName: null,
+        targetQ: targetShip.q, targetR: targetShip.r, hit: false, damage: 0,
+        targetShipId: targetShip.id, targetShipName: targetShip.name,
       });
     }
   }

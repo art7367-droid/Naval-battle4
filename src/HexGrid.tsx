@@ -5,8 +5,8 @@ interface HexGridProps {
   playerShips: Ship[];
   enemyShips: Ship[];
   phase: GamePhase;
-  selectedTarget?: { q: number; r: number } | null;
-  shotTargets?: { shipId: number; targetQ: number; targetR: number }[];
+  selectedTarget?: { shipId: number } | null;
+  shotTargets?: { shipId: number; targetShipId: number }[];
   shots?: Shot[];
   enemyShots?: Shot[];
   selectedShipForMove?: Ship | null;
@@ -17,6 +17,7 @@ interface HexGridProps {
   isAnimating?: boolean;
   onCellClick: (q: number, r: number) => void;
   onShipClick?: (ship: Ship) => void;
+  onShipRightClick?: (e: React.MouseEvent, ship: Ship) => void;
 }
 
 const HEX_SIZE = 20;
@@ -44,7 +45,7 @@ function getHexPosition(q: number, r: number, size: number) {
 export default function HexGrid({
   playerShips, enemyShips, phase, selectedTarget, selectedShipForMove,
   reachableHexes = [], attackingShip, playerTrajectories = [], enemyTrajectories = [],
-  onCellClick, onShipClick,
+  onCellClick, onShipClick, onShipRightClick,
 }: HexGridProps) {
   const width = BOARD_SIZE * (Math.sqrt(3) * HEX_SIZE) + HEX_SIZE * 2;
   const height = BOARD_SIZE * (HEX_SIZE * 1.5) + HEX_SIZE * 2;
@@ -67,7 +68,8 @@ export default function HexGrid({
           Array.from({ length: BOARD_SIZE }).map((_, q) => {
             const pos = getHexPosition(q, r, HEX_SIZE);
             const clickable = isClickable(q, r);
-            const isSelected = selectedTarget && selectedTarget.q === q && selectedTarget.r === r;
+            // Проверяем, является ли этот гекс позицией выбранного корабля-цели
+            const isSelected = selectedTarget && enemyShips.some(s => s.id === selectedTarget.shipId && s.q === q && s.r === r);
             const isReachable = reachableHexes.some(h => h.q === q && h.r === r);
 
             return (
@@ -126,15 +128,18 @@ export default function HexGrid({
         {playerShips.filter(s => s.currentHP > 0).map(ship => {
           const pos = getHexPosition(ship.q, ship.r, HEX_SIZE);
           const isSelected = selectedShipForMove?.id === ship.id;
+          const hasMoved = ship.hasMoved;
           return (
             <g key={`player-${ship.id}`} transform={`translate(${pos.x}, ${pos.y})`}
-              onClick={(e) => { e.stopPropagation(); onShipClick?.(ship); }} className="cursor-pointer">
+              onClick={(e) => { e.stopPropagation(); onShipClick?.(ship); }}
+              onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); onShipRightClick?.(e, ship); }}
+              className="cursor-pointer">
               {isSelected && (<circle cx={0} cy={0} r={HEX_SIZE * 0.8} fill="none" stroke="#fbbf24" strokeWidth="2" />)}
               {phase === 'planning' && attackingShip && attackingShip.id === ship.id && (
                 <circle cx={0} cy={0} r={HEX_SIZE * 0.9} fill="none" stroke="#ef4444" strokeWidth="3" strokeDasharray="5,3" opacity="0.9" />
               )}
               <ShipSprite type={ship.type} heading={ship.heading} isPlayer={true} size={HEX_SIZE * 0.85} />
-              <text x={0} y={HEX_SIZE * 0.9} textAnchor="middle" fontSize={HEX_SIZE * 0.35} fontWeight="bold" fill="#4ade80">{ship.currentHP}</text>
+              <text x={0} y={HEX_SIZE * 0.9} textAnchor="middle" fontSize={HEX_SIZE * 0.35} fontWeight="bold" fill={hasMoved ? "#94a3b8" : "#4ade80"}>{ship.currentHP}/{ship.maxHP}</text>
             </g>
           );
         })}
@@ -146,7 +151,7 @@ export default function HexGrid({
               onClick={(e) => { e.stopPropagation(); if (phase === 'planning') onCellClick(ship.q, ship.r); }}
               className={phase === 'planning' ? 'cursor-crosshair' : ''}>
               <ShipSprite type={ship.type} heading={ship.heading} isPlayer={false} size={HEX_SIZE * 0.85} />
-              <text x={0} y={HEX_SIZE * 0.9} textAnchor="middle" fontSize={HEX_SIZE * 0.35} fontWeight="bold" fill="#4ade80">{ship.currentHP}</text>
+              <text x={0} y={HEX_SIZE * 0.9} textAnchor="middle" fontSize={HEX_SIZE * 0.35} fontWeight="bold" fill="#f87171">{ship.currentHP}/{ship.maxHP}</text>
             </g>
           );
         })}

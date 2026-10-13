@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Ship, GamePhase, Shot, Trajectory, BattleLogEntry, createCompartments, calculateShipStats } from './types';
 import { ShipDatabaseEntry } from './types/shipDatabase';
 import {
@@ -35,10 +35,10 @@ function App() {
   const [playerShips, setPlayerShips] = useState<Ship[]>([]);
   const [enemyShips, setEnemyShips] = useState<Ship[]>([]);
   const [message, setMessage] = useState('Нажмите "Начать бой" для размещения кораблей');
-  const [playerShotTargets, setPlayerShotTargets] = useState<{ shipId: number; targetQ: number; targetR: number }[]>([]);
+  const [playerShotTargets, setPlayerShotTargets] = useState<{ shipId: number; targetShipId: number }[]>([]);
   const [playerShots, setPlayerShots] = useState<Shot[]>([]);
   const [enemyShots, setEnemyShots] = useState<Shot[]>([]);
-  const [selectedTarget, setSelectedTarget] = useState<{ q: number; r: number } | null>(null);
+  const [selectedTarget, setSelectedTarget] = useState<{ shipId: number } | null>(null);
   const [currentShipIndex, setCurrentShipIndex] = useState(0);
   const [turnNumber, setTurnNumber] = useState(1);
   const [selectedShipForMove, setSelectedShipForMove] = useState<Ship | null>(null);
@@ -52,6 +52,16 @@ function App() {
   const [battleLog, setBattleLog] = useState<BattleLogEntry[]>([]);
   const [showBattleLog, setShowBattleLog] = useState(true); // Лог боя видим по умолчанию
   const [hitMarkers, setHitMarkers] = useState<Array<{shipId: number; compartmentId: string; turn: number; damage: number}>>([]);
+  
+  // useRef для хранения актуального значения playerShotTargets
+  const playerShotTargetsRef = useRef<{ shipId: number; targetShipId: number }[]>([]);
+  
+  // Обновляем ref при каждом изменении state
+  const setPlayerShotTargetsWithRef = (targets: { shipId: number; targetShipId: number }[]) => {
+    console.log(`🔄 setPlayerShotTargetsWithRef:`, targets);
+    playerShotTargetsRef.current = targets;
+    setPlayerShotTargets(targets);
+  };
 
   const startBattle = useCallback(() => {
     const pShips = generatePlayerShips();
@@ -72,9 +82,51 @@ function App() {
     // Создаём корабли с учётом реальной длины из базы данных
     const pShips = playerDBShips.map((dbShip, index) => {
       const shipLength = dbShip.length || (dbShip.class === 'battleship' ? 250 : dbShip.class === 'cruiser' ? 200 : 115);
-      const compartments = createCompartments(dbShip.class as any, shipLength);
+      
+      // Используем compartmentData из БД если есть
+      let compartments;
+      if (dbShip.compartmentData?.compartments && dbShip.compartmentData.compartments.length > 0) {
+        console.log(`🚢 ${dbShip.name}: Загружаю ${dbShip.compartmentData.compartments.length} отсеков из БД`);
+        compartments = dbShip.compartmentData.compartments.map(c => ({
+          id: c.id,
+          position: c.position as any,
+          deck: c.deck as any,
+          side: c.side as any,
+          type: c.type as any,
+          name: c.name,
+          maxHP: c.maxHP,
+          currentHP: c.currentHP,
+          status: c.status as any,
+          watertight: c.watertight,
+          armor: c.armor,
+          flooded: 0,
+          fire: 0,
+          components: [],
+          adjacentIds: [],
+          lengthMeters: 10,
+          positionFromBow: c.gridX * 5
+        }));
+      } else {
+        console.log(`🚢 ${dbShip.name}: Нет данных в БД, создаю ${shipLength}м корабль автоматически`);
+        compartments = createCompartments(dbShip.class as any, shipLength);
+      }
+      
       const stats = calculateShipStats(compartments);
       const totalHP = compartments.reduce((sum: number, c: any) => sum + c.maxHP, 0);
+      
+      // Увеличиваем точность и урон в зависимости от класса
+      let accuracy = 85;
+      let damage = 50;
+      if (dbShip.class === 'battleship') {
+        accuracy = 90;
+        damage = 60;
+      } else if (dbShip.class === 'cruiser') {
+        accuracy = 85;
+        damage = 45;
+      } else {
+        accuracy = 80;
+        damage = 35;
+      }
       
       return {
         id: index + 1,
@@ -85,8 +137,8 @@ function App() {
         q: Math.floor(Math.random() * 8),
         r: Math.floor(Math.random() * 25),
         heading: 0 as any,
-        accuracy: 75,
-        damage: 35,
+        accuracy,
+        damage,
         speed: Math.round(dbShip.speed / 10),
         range: dbShip.range,
         hasMoved: false,
@@ -105,9 +157,49 @@ function App() {
     
     const eShips = enemyDBShips.map((dbShip, index) => {
       const shipLength = dbShip.length || (dbShip.class === 'battleship' ? 250 : dbShip.class === 'cruiser' ? 200 : 115);
-      const compartments = createCompartments(dbShip.class as any, shipLength);
+      
+      // Используем compartmentData из БД если есть
+      let compartments;
+      if (dbShip.compartmentData?.compartments && dbShip.compartmentData.compartments.length > 0) {
+        compartments = dbShip.compartmentData.compartments.map(c => ({
+          id: c.id,
+          position: c.position as any,
+          deck: c.deck as any,
+          side: c.side as any,
+          type: c.type as any,
+          name: c.name,
+          maxHP: c.maxHP,
+          currentHP: c.currentHP,
+          status: c.status as any,
+          watertight: c.watertight,
+          armor: c.armor,
+          flooded: 0,
+          fire: 0,
+          components: [],
+          adjacentIds: [],
+          lengthMeters: 10,
+          positionFromBow: c.gridX * 5
+        }));
+      } else {
+        compartments = createCompartments(dbShip.class as any, shipLength);
+      }
+      
       const stats = calculateShipStats(compartments);
       const totalHP = compartments.reduce((sum: number, c: any) => sum + c.maxHP, 0);
+      
+      // Увеличиваем точность и урон в зависимости от класса
+      let accuracy = 70;
+      let damage = 30;
+      if (dbShip.class === 'battleship') {
+        accuracy = 80;
+        damage = 45;
+      } else if (dbShip.class === 'cruiser') {
+        accuracy = 75;
+        damage = 35;
+      } else {
+        accuracy = 70;
+        damage = 25;
+      }
       
       return {
         id: index + 100,
@@ -118,8 +210,8 @@ function App() {
         q: 25 - Math.floor(Math.random() * 8),
         r: Math.floor(Math.random() * 25),
         heading: 3 as any,
-        accuracy: 75,
-        damage: 35,
+        accuracy,
+        damage,
         speed: Math.round(dbShip.speed / 10),
         range: dbShip.range,
         hasMoved: false,
@@ -157,8 +249,66 @@ function App() {
   }, [phase, playerShips, enemyShips]);
 
   const handleShipClickForDetail = useCallback((ship: Ship) => {
-    setSelectedShipForDetail(ship);
-  }, []);
+    // В фазе движения - выбираем корабль для перемещения
+    if (phase === 'movement' && ship.currentHP > 0 && !ship.hasMoved) {
+      setSelectedShipForMove(ship);
+      setSelectedShipForDetail(ship);
+      const reachable = getReachableHexes(ship, [...playerShips, ...enemyShips].filter(s => s.currentHP > 0));
+      setReachableHexes(reachable);
+      setMessage(`${shipIcon(ship.type)} ${ship.name} выбран. Выберите клетку для перемещения (макс. ${ship.speed} гексов). ПКМ - пропустить.`);
+    } else {
+      // В других фазах - просто показываем детали
+      setSelectedShipForDetail(ship);
+    }
+  }, [phase, playerShips, enemyShips]);
+
+  const handleShipRightClick = useCallback((e: React.MouseEvent, ship: Ship) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // В фазе движения - пропускаем движение этого корабля
+    if (phase === 'movement' && selectedShipForMove?.id === ship.id) {
+      console.log(`⏭️ Пропуск движения корабля ${ship.name} через ПКМ`);
+      
+      const updatedShips = playerShips.map(s => 
+        s.id === ship.id ? { ...s, hasMoved: true } : s
+      );
+      setPlayerShips(updatedShips);
+      setSelectedShipForMove(null);
+      setReachableHexes([]);
+      
+      // Проверяем, все ли корабли переместились
+      const allMoved = updatedShips.filter(s => s.currentHP > 0).every(s => s.hasMoved);
+      
+      if (allMoved) {
+        console.log(`✅ Все корабли обработаны, переход к фазе планирования`);
+        setMessage('Все корабли обработаны! Переход к фазе планирования выстрелов...');
+        setTimeout(() => {
+          setPhase('planning');
+          const firstAlive = updatedShips.findIndex(s => s.currentHP > 0);
+          if (firstAlive !== -1) {
+            setCurrentShipIndex(firstAlive);
+            setMessage(`Ход ${turnNumber}: Выберите цель для ${shipIcon(updatedShips[firstAlive].type)} ${updatedShips[firstAlive].name}`);
+          }
+        }, 1000);
+      } else {
+        const nextAlive = updatedShips.findIndex(s => s.currentHP > 0 && !s.hasMoved);
+        if (nextAlive !== -1) {
+          setMessage(`Выберите следующий корабль для перемещения.`);
+        } else {
+          setMessage('Все корабли обработаны! Переход к фазе планирования выстрелов...');
+          setTimeout(() => {
+            setPhase('planning');
+            const firstAlive = updatedShips.findIndex(s => s.currentHP > 0);
+            if (firstAlive !== -1) {
+              setCurrentShipIndex(firstAlive);
+              setMessage(`Ход ${turnNumber}: Выберите цель для ${shipIcon(updatedShips[firstAlive].type)} ${updatedShips[firstAlive].name}`);
+            }
+          }, 1000);
+        }
+      }
+    }
+  }, [phase, selectedShipForMove, playerShips, turnNumber]);
 
   const handleMoveClick = useCallback((q: number, r: number) => {
     if (phase !== 'movement' || !selectedShipForMove) return;
@@ -228,55 +378,117 @@ function App() {
   }, [phase, selectedShipForMove, reachableHexes, playerShips, turnNumber]);
 
   const handleCellClick = useCallback((q: number, r: number) => {
+    console.log(`🖱️ Клик на гекс (${q}, ${r}), фаза: ${phase}`);
+    
     if (phase === 'movement') {
       handleMoveClick(q, r);
       return;
     }
     
-    if (phase !== 'planning') return;
+    if (phase !== 'planning') {
+      console.log(`⚠️ Не в фазе planning, игнорируем клик`);
+      return;
+    }
 
     const currentShip = playerShips[currentShipIndex];
-    if (!currentShip || currentShip.currentHP <= 0) return;
+    if (!currentShip || currentShip.currentHP <= 0) {
+      console.log(`⚠️ Текущий корабль не найден или уничтожен`);
+      return;
+    }
+    
+    console.log(`🚢 Текущий корабль: ${currentShip.name} (ID: ${currentShip.id})`);
 
     const isOwnShip = playerShips.some(s => s.q === q && s.r === r && s.currentHP > 0);
     if (isOwnShip) {
+      console.log(`⚠️ Клик на свой корабль`);
       setMessage(`⚠️ Нельзя стрелять по своим кораблям!`);
       return;
     }
 
+    // Находим вражеский корабль на этом гексе
+    const targetShip = enemyShips.find(s => s.q === q && s.r === r && s.currentHP > 0);
+    if (!targetShip) {
+      console.log(`⚠️ На гексе (${q}, ${r}) нет вражеского корабля`);
+      setMessage(`⚠️ На этом гексе нет вражеского корабля!`);
+      return;
+    }
+    
+    console.log(`🎯 Найден вражеский корабль: ${targetShip.name} (ID: ${targetShip.id})`);
+
     const distance = hexDistance(currentShip.q, currentShip.r, q, r);
+    console.log(`📏 Дистанция: ${distance}, дальность: ${currentShip.range}`);
+    
     if (distance > currentShip.range) {
+      console.log(`⚠️ Цель вне дальности!`);
       setMessage(`⚠️ Цель вне дальности! Максимальная дальность: ${currentShip.range} гексов`);
       return;
     }
 
-    setSelectedTarget({ q, r });
-    setMessage(`${shipIcon(currentShip.type)} ${currentShip.name} → цель: (${q},${r}). Подтвердить?`);
+    setSelectedTarget({ shipId: targetShip.id });
+    console.log(`✅ Цель установлена: ${targetShip.name}`);
+    setMessage(`${shipIcon(currentShip.type)} ${currentShip.name} → цель: ${targetShip.name}. Подтвердить?`);
   }, [phase, playerShips, currentShipIndex, handleMoveClick]);
 
   const confirmShot = useCallback(() => {
-    if (!selectedTarget) return;
+    console.log(`🔫 confirmShot вызван, selectedTarget:`, selectedTarget);
+    
+    if (!selectedTarget) {
+      console.log(`⚠️ Нет выбранной цели`);
+      return;
+    }
 
     const currentShip = playerShips[currentShipIndex];
-    if (!currentShip) return;
+    if (!currentShip) {
+      console.log(`⚠️ Текущий корабль не найден`);
+      return;
+    }
+    
+    console.log(`🚢 Текущий корабль: ${currentShip.name} (ID: ${currentShip.id})`);
+
+    // selectedTarget теперь содержит ID корабля-цели
+    const targetShipId = selectedTarget.shipId;
+    const targetShip = enemyShips.find(s => s.id === targetShipId);
+    
+    if (!targetShip) {
+      console.log(`⚠️ Цель не найдена в enemyShips`);
+      setMessage('⚠️ Цель не найдена!');
+      return;
+    }
+    
+    console.log(`🎯 Цель: ${targetShip.name} (ID: ${targetShipId})`);
 
     const newTarget = {
       shipId: currentShip.id,
-      targetQ: selectedTarget.q,
-      targetR: selectedTarget.r,
+      targetShipId: targetShipId,
     };
-    setPlayerShotTargets([...playerShotTargets, newTarget]);
+    
+    console.log(`✅ Добавляем цель в playerShotTargets:`, newTarget);
+    console.log(`📊 Текущие цели:`, playerShotTargets);
+    
+    const updatedTargets = [...playerShotTargets, newTarget];
+    console.log(`📝 Обновленные цели:`, updatedTargets);
+    setPlayerShotTargetsWithRef(updatedTargets);
 
     const nextAlive = playerShips.findIndex((s, i) => i > currentShipIndex && s.currentHP > 0);
+    console.log(`🔍 Следующий живой корабль:`, nextAlive);
+    console.log(`📊 currentShipIndex:`, currentShipIndex);
+    console.log(`🚢 Всего кораблей:`, playerShips.length);
+    
     if (nextAlive !== -1) {
+      console.log(`➡️ Переход к следующему кораблю`);
       setCurrentShipIndex(nextAlive);
       setSelectedTarget(null);
       setMessage(`Выберите цель для ${shipIcon(playerShips[nextAlive].type)} ${playerShips[nextAlive].name}`);
     } else {
+      console.log(`✅ Все корабли выбрали цели! Вызываем executePhase через 1 секунду`);
+      console.log(`📊 Целей для выстрела:`, updatedTargets.length);
       setMessage('Все корабли выбрали цели! Выполнение выстрелов...');
-      setTimeout(() => executePhase(), 1000);
+      setTimeout(() => {
+        console.log(`⏰ setTimeout сработал, вызываем executePhase`);
+        executePhase();
+      }, 1000);
     }
-  }, [selectedTarget, playerShips, currentShipIndex, playerShotTargets]);
+  }, [selectedTarget, playerShips, enemyShips, currentShipIndex, playerShotTargets]);
 
   const skipShot = useCallback(() => {
     const currentShip = playerShips[currentShipIndex];
@@ -298,13 +510,31 @@ function App() {
   }, [playerShips, currentShipIndex]);
 
   const executePhase = useCallback(() => {
+    console.log(`🚀 executePhase вызван!`);
+    console.log(`📊 playerShotTargetsRef.current:`, playerShotTargetsRef.current);
+    console.log(`📊 playerShotTargetsRef.current.length:`, playerShotTargetsRef.current.length);
+    
+    const currentTargets = playerShotTargetsRef.current;
+    
+    if (currentTargets.length === 0) {
+      console.log(`⚠️ playerShotTargets пуст! Выстрелы не будут выполнены.`);
+    }
+    
     setPhase('execution');
     setIsAnimating(true);
     setMessage('Выстрелы выполняются...');
 
     setTimeout(() => {
+      console.log(`🔫 Выполнение выстрелов игрока: ${currentTargets.length} целей`);
+      console.log(`📋 Список целей:`, currentTargets);
+      currentTargets.forEach(t => {
+        const attacker = playerShips.find(s => s.id === t.shipId);
+        const target = enemyShips.find(s => s.id === t.targetShipId);
+        console.log(`  ${attacker?.name} → ${target?.name}`);
+      });
+      
       // Выполняем выстрелы игрока
-      const playerResult = executeShots(playerShotTargets, playerShips, enemyShips);
+      const playerResult = executeShots(currentTargets, playerShips, enemyShips);
       let updatedEnemyShips = playerResult.updatedShips;
       setPlayerShots(playerResult.shots);
       
@@ -326,19 +556,24 @@ function App() {
         }
       });
       
-      // Добавляем попадания в журнал
-      const hitLogs: BattleLogEntry[] = playerResult.shots
-        .filter(s => s.hit)
-        .map(s => ({
-          id: `log_${Date.now()}_${Math.random()}`,
-          turn: turnNumber,
-          timestamp: Date.now(),
-          type: 'shot_hit' as const,
-          shipId: s.shipId,
-          shipName: s.shipName,
-          message: `🎯 ${s.shipName} попал в ${s.targetShipName} (${s.damage} урона)`,
-          severity: 'info' as const
-        }));
+      console.log(`📊 Выстрелы игрока: ${playerResult.shots.length}`);
+      playerResult.shots.forEach(s => {
+        console.log(`  ${s.shipName} → ${s.targetShipName || 'нет цели'}: ${s.hit ? 'ПОПАДАНИЕ' : 'промах'} (${s.damage} урона)`);
+      });
+      
+      // Добавляем попадания и промахи в журнал
+      const playerShotLogs: BattleLogEntry[] = playerResult.shots.map(s => ({
+        id: `log_${Date.now()}_${Math.random()}`,
+        turn: turnNumber,
+        timestamp: Date.now(),
+        type: s.hit ? 'shot_hit' as const : 'shot_miss' as const,
+        shipId: s.shipId,
+        shipName: s.shipName,
+        message: s.hit 
+          ? `🎯 ${s.shipName} попал в ${s.targetShipName} (${s.damage} урона)`
+          : `💨 ${s.shipName} промахнулся по ${s.targetShipName || 'цели'}`,
+        severity: s.hit ? 'info' as const : 'warning' as const
+      }));
 
       // Выстрелы противника
       const enemyShotTargets = generateAIShots(enemyShips, playerShips);
@@ -367,20 +602,6 @@ function App() {
       // Обновляем маркеры попаданий
       setHitMarkers(prev => [...prev, ...playerHitMarkers, ...enemyHitMarkers]);
       
-      // Добавляем попадания врага в журнал
-      const enemyHitLogs: BattleLogEntry[] = enemyResult.shots
-        .filter(s => s.hit)
-        .map(s => ({
-          id: `log_${Date.now()}_${Math.random()}`,
-          turn: turnNumber,
-          timestamp: Date.now(),
-          type: 'shot_hit' as const,
-          shipId: s.shipId,
-          shipName: s.shipName,
-          message: `🎯 Вражеский ${s.shipName} попал в ${s.targetShipName} (${s.damage} урона)`,
-          severity: 'warning' as const
-        }));
-
       updateAIAfterShots(enemyResult.shots, enemyResult.updatedShips);
 
       // Обработка распространения повреждений
@@ -396,11 +617,25 @@ function App() {
       setPlayerShips(updatedPlayerShips);
       setEnemyShips(updatedEnemyShips);
       
+      // Добавляем попадания и промахи врага в журнал
+      const enemyShotLogs: BattleLogEntry[] = enemyResult.shots.map(s => ({
+        id: `log_${Date.now()}_${Math.random()}`,
+        turn: turnNumber,
+        timestamp: Date.now(),
+        type: s.hit ? 'shot_hit' as const : 'shot_miss' as const,
+        shipId: s.shipId,
+        shipName: s.shipName,
+        message: s.hit 
+          ? `🎯 Вражеский ${s.shipName} попал в ${s.targetShipName} (${s.damage} урона)`
+          : `💨 Вражеский ${s.shipName} промахнулся`,
+        severity: s.hit ? 'critical' as const : 'warning' as const
+      }));
+      
       // Обновляем журнал боя
       setBattleLog(prev => [
         ...prev,
-        ...hitLogs,
-        ...enemyHitLogs,
+        ...playerShotLogs,
+        ...enemyShotLogs,
         ...propagationResult.allLogs
       ]);
 
@@ -444,7 +679,7 @@ function App() {
     setPhase('movement');
     setCurrentShipIndex(0);
     setSelectedTarget(null);
-    setPlayerShotTargets([]);
+    setPlayerShotTargetsWithRef([]);
     setPlayerShots([]);
     setEnemyShots([]);
     setSelectedShipForMove(null);
@@ -491,7 +726,7 @@ function App() {
     setPlayerShips([]);
     setEnemyShips([]);
     setMessage('Нажмите "Начать бой" для размещения кораблей');
-    setPlayerShotTargets([]);
+    setPlayerShotTargetsWithRef([]);
     setPlayerShots([]);
     setEnemyShots([]);
     setSelectedTarget(null);
@@ -735,6 +970,7 @@ function App() {
                 isAnimating={isAnimating}
                 onCellClick={handleCellClick}
                 onShipClick={handleShipClickForDetail}
+                onShipRightClick={handleShipRightClick}
               />
             </div>
           </div>

@@ -6,16 +6,38 @@ interface ShipSchematicProps {
   backgroundImage?: string | null;
   showCompartments?: boolean;
   compartmentOpacity?: number;
+  hitMarkers?: Array<{shipId: number; compartmentId: string; turn: number; damage: number}>;
 }
 
 export default function ShipSchematic({ 
   ship, 
   backgroundImage, 
   showCompartments = true,
-  compartmentOpacity = 0.6 
+  compartmentOpacity = 0.6,
+  hitMarkers = []
 }: ShipSchematicProps) {
   const getCompartmentColor = (comp: Compartment) => {
     return getCompartmentTypeColor(comp.type, comp.status);
+  };
+  
+  // Функция для получения маркеров попаданий для отсека
+  const getHitMarkersForCompartment = (compId: string) => {
+    return hitMarkers.filter(m => m.shipId === ship.id && m.compartmentId === compId);
+  };
+  
+  // Компонент для отрисовки маркера попадания
+  const renderHitMarker = (x: number, y: number, markers: typeof hitMarkers) => {
+    if (markers.length === 0) return null;
+    const latestMarker = markers[markers.length - 1];
+    return (
+      <g>
+        <circle cx={x} cy={y} r={4} fill="#dc2626" stroke="#fff" strokeWidth="1" opacity="0.9" />
+        <text x={x} y={y + 1} fill="#fff" fontSize="6" textAnchor="middle" dominantBaseline="middle" fontWeight="bold">
+          {markers.length > 1 ? `${markers.length}` : '✕'}
+        </text>
+        <title>Попадание: {latestMarker.damage} урона (ход {latestMarker.turn})</title>
+      </g>
+    );
   };
 
   const compartmentsByDeck = {
@@ -79,6 +101,7 @@ export default function ShipSchematic({
                       <text x={x + compartmentWidth / 2} y={y + deckHeight / 2 + 1} fill="#ffffff" fontSize={deckHeight * 0.7} textAnchor="middle" dominantBaseline="middle">🔥</text>
                     </g>
                   )}
+                  {renderHitMarker(x + compartmentWidth / 2, y + deckHeight / 2, getHitMarkersForCompartment(comp.id))}
                 </g>
               );
             })}
@@ -107,6 +130,7 @@ export default function ShipSchematic({
                   <text x={x + compartmentWidth / 2} y={y + deckHeight / 2 + 1} fill="#ffffff" fontSize={deckHeight * 0.7} textAnchor="middle" dominantBaseline="middle">🔥</text>
                 </g>
               )}
+              {renderHitMarker(x + compartmentWidth / 2, y + deckHeight / 2, getHitMarkersForCompartment(comp.id))}
             </g>
           );
         })}
@@ -135,6 +159,7 @@ export default function ShipSchematic({
                       <text x={x + compartmentWidth / 2} y={y + deckHeight / 2 + 1} fill="#ffffff" fontSize={deckHeight * 0.7} textAnchor="middle" dominantBaseline="middle">🔥</text>
                     </g>
                   )}
+                  {renderHitMarker(x + compartmentWidth / 2, y + deckHeight / 2, getHitMarkersForCompartment(comp.id))}
                 </g>
               );
             })}
@@ -163,6 +188,7 @@ export default function ShipSchematic({
                   <text x={x + compartmentWidth / 2} y={y + deckHeight / 2 + 1} fill="#ffffff" fontSize={deckHeight * 0.7} textAnchor="middle" dominantBaseline="middle">🔥</text>
                 </g>
               )}
+              {renderHitMarker(x + compartmentWidth / 2, y + deckHeight / 2, getHitMarkersForCompartment(comp.id))}
             </g>
           );
         })}
@@ -209,6 +235,7 @@ export default function ShipSchematic({
                   <text x={x + compartmentWidth / 2} y={y + 16} fill="#ffffff" fontSize="14" textAnchor="middle" dominantBaseline="middle">🔥</text>
                 </g>
               )}
+              {renderHitMarker(x + compartmentWidth / 2, y + 15, getHitMarkersForCompartment(comp.id))}
             </g>
           );
         })}

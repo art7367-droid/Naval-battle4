@@ -713,28 +713,30 @@ function App() {
         )}
 
         {phase !== 'placement' && (
-          <div className="flex flex-col lg:flex-row justify-center gap-4 items-start">
-            <div className="flex flex-col gap-4">
+          <div className="flex flex-col lg:flex-row justify-start gap-4 items-start px-4">
+            <div className="flex flex-col gap-4 flex-shrink-0">
               <BattleShipDetailCard ship={selectedShipForDetail} hitMarkers={hitMarkers} />
               {showBattleLog && <BattleLog entries={battleLog} title="Журнал боя" />}
             </div>
-            <HexGrid
-              playerShips={playerShips}
-              enemyShips={enemyShips}
-              phase={phase}
-              selectedTarget={selectedTarget}
-              shotTargets={playerShotTargets}
-              shots={playerShots}
-              enemyShots={enemyShots}
-              selectedShipForMove={selectedShipForMove}
-              reachableHexes={reachableHexes}
-              attackingShip={playerShips[currentShipIndex]}
-              playerTrajectories={playerTrajectories}
-              enemyTrajectories={enemyTrajectories}
-              isAnimating={isAnimating}
-              onCellClick={handleCellClick}
-              onShipClick={handleShipClickForDetail}
-            />
+            <div className="flex-1 overflow-hidden">
+              <HexGrid
+                playerShips={playerShips}
+                enemyShips={enemyShips}
+                phase={phase}
+                selectedTarget={selectedTarget}
+                shotTargets={playerShotTargets}
+                shots={playerShots}
+                enemyShots={enemyShots}
+                selectedShipForMove={selectedShipForMove}
+                reachableHexes={reachableHexes}
+                attackingShip={playerShips[currentShipIndex]}
+                playerTrajectories={playerTrajectories}
+                enemyTrajectories={enemyTrajectories}
+                isAnimating={isAnimating}
+                onCellClick={handleCellClick}
+                onShipClick={handleShipClickForDetail}
+              />
+            </div>
           </div>
         )}
 

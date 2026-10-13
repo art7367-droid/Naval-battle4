@@ -19,7 +19,7 @@ interface HexGridProps {
   onShipClick?: (ship: Ship) => void;
 }
 
-const HEX_SIZE = 28;
+const HEX_SIZE = 20;
 
 function getHexPoints(size: number): string {
   const points = [];

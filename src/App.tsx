@@ -249,8 +249,66 @@ function App() {
   }, [phase, playerShips, enemyShips]);
 
   const handleShipClickForDetail = useCallback((ship: Ship) => {
-    setSelectedShipForDetail(ship);
-  }, []);
+    // В фазе движения - выбираем корабль для перемещения
+    if (phase === 'movement' && ship.currentHP > 0 && !ship.hasMoved) {
+      setSelectedShipForMove(ship);
+      setSelectedShipForDetail(ship);
+      const reachable = getReachableHexes(ship, [...playerShips, ...enemyShips].filter(s => s.currentHP > 0));
+      setReachableHexes(reachable);
+      setMessage(`${shipIcon(ship.type)} ${ship.name} выбран. Выберите клетку для перемещения (макс. ${ship.speed} гексов). ПКМ - пропустить.`);
+    } else {
+      // В других фазах - просто показываем детали
+      setSelectedShipForDetail(ship);
+    }
+  }, [phase, playerShips, enemyShips]);
+
+  const handleShipRightClick = useCallback((e: React.MouseEvent, ship: Ship) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // В фазе движения - пропускаем движение этого корабля
+    if (phase === 'movement' && selectedShipForMove?.id === ship.id) {
+      console.log(`⏭️ Пропуск движения корабля ${ship.name} через ПКМ`);
+      
+      const updatedShips = playerShips.map(s => 
+        s.id === ship.id ? { ...s, hasMoved: true } : s
+      );
+      setPlayerShips(updatedShips);
+      setSelectedShipForMove(null);
+      setReachableHexes([]);
+      
+      // Проверяем, все ли корабли переместились
+      const allMoved = updatedShips.filter(s => s.currentHP > 0).every(s => s.hasMoved);
+      
+      if (allMoved) {
+        console.log(`✅ Все корабли обработаны, переход к фазе планирования`);
+        setMessage('Все корабли обработаны! Переход к фазе планирования выстрелов...');
+        setTimeout(() => {
+          setPhase('planning');
+          const firstAlive = updatedShips.findIndex(s => s.currentHP > 0);
+          if (firstAlive !== -1) {
+            setCurrentShipIndex(firstAlive);
+            setMessage(`Ход ${turnNumber}: Выберите цель для ${shipIcon(updatedShips[firstAlive].type)} ${updatedShips[firstAlive].name}`);
+          }
+        }, 1000);
+      } else {
+        const nextAlive = updatedShips.findIndex(s => s.currentHP > 0 && !s.hasMoved);
+        if (nextAlive !== -1) {
+          setMessage(`Выберите следующий корабль для перемещения.`);
+        } else {
+          setMessage('Все корабли обработаны! Переход к фазе планирования выстрелов...');
+          setTimeout(() => {
+            setPhase('planning');
+            const firstAlive = updatedShips.findIndex(s => s.currentHP > 0);
+            if (firstAlive !== -1) {
+              setCurrentShipIndex(firstAlive);
+              setMessage(`Ход ${turnNumber}: Выберите цель для ${shipIcon(updatedShips[firstAlive].type)} ${updatedShips[firstAlive].name}`);
+            }
+          }, 1000);
+        }
+      }
+    }
+  }, [phase, selectedShipForMove, playerShips, turnNumber]);
 
   const handleMoveClick = useCallback((q: number, r: number) => {
     if (phase !== 'movement' || !selectedShipForMove) return;
@@ -912,6 +970,7 @@ function App() {
                 isAnimating={isAnimating}
                 onCellClick={handleCellClick}
                 onShipClick={handleShipClickForDetail}
+                onShipRightClick={handleShipRightClick}
               />
             </div>
           </div>

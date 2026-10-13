@@ -133,7 +133,7 @@ export function getReachableHexes(ship: Ship, allShips: Ship[]): { q: number; r:
 }
 
 export function executeShots(
-  shots: { shipId: number; targetQ: number; targetR: number }[],
+  shots: { shipId: number; targetShipId: number }[],
   attackerShips: Ship[],
   defenderShips: Ship[]
 ): { shots: Shot[]; updatedShips: Ship[] } {
@@ -149,19 +149,17 @@ export function executeShots(
       continue;
     }
     
-    const distance = hexDistance(attacker.q, attacker.r, shot.targetQ, shot.targetR);
-    const targetShip = newShips.find(s => s.q === shot.targetQ && s.r === shot.targetR && s.currentHP > 0);
+    // Находим корабль-цель по ID
+    const targetShip = newShips.find(s => s.id === shot.targetShipId && s.currentHP > 0);
     
-    console.log(`🔫 ${attacker.name} стреляет в (${shot.targetQ},${shot.targetR}), дистанция: ${distance}, дальность: ${attacker.range}, цель: ${targetShip?.name || 'нет'}`);
-    
-    // Если цель вне дальности - промах
-    if (distance > attacker.range) {
+    if (!targetShip) {
+      console.log(`⚠️ ${attacker.name}: Цель не найдена или уничтожена`);
       executedShots.push({
         shipId: attacker.id,
         shipName: attacker.name,
         shipType: attacker.type,
-        targetQ: shot.targetQ,
-        targetR: shot.targetR,
+        targetQ: 0,
+        targetR: 0,
         hit: false,
         damage: 0,
         targetShipId: null,
@@ -170,18 +168,23 @@ export function executeShots(
       continue;
     }
     
-    // Если цели нет на клетке - промах
-    if (!targetShip) {
+    const distance = hexDistance(attacker.q, attacker.r, targetShip.q, targetShip.r);
+    
+    console.log(`🔫 ${attacker.name} стреляет в ${targetShip.name}, дистанция: ${distance}, дальность: ${attacker.range}`);
+    
+    // Если цель вне дальности - промах
+    if (distance > attacker.range) {
+      console.log(`⚠️ ${attacker.name}: Цель вне дальности (${distance} > ${attacker.range})`);
       executedShots.push({
         shipId: attacker.id,
         shipName: attacker.name,
         shipType: attacker.type,
-        targetQ: shot.targetQ,
-        targetR: shot.targetR,
+        targetQ: targetShip.q,
+        targetR: targetShip.r,
         hit: false,
         damage: 0,
-        targetShipId: null,
-        targetShipName: null,
+        targetShipId: targetShip.id,
+        targetShipName: targetShip.name,
       });
       continue;
     }
@@ -260,14 +263,14 @@ export function executeShots(
       });
       executedShots.push({
         shipId: attacker.id, shipName: attacker.name, shipType: attacker.type,
-        targetQ: shot.targetQ, targetR: shot.targetR, hit: true, damage: attacker.damage,
+        targetQ: targetShip.q, targetR: targetShip.r, hit: true, damage: attacker.damage,
         targetShipId: targetShip.id, targetShipName: targetShip.name,
       });
     } else {
       executedShots.push({
         shipId: attacker.id, shipName: attacker.name, shipType: attacker.type,
-        targetQ: shot.targetQ, targetR: shot.targetR, hit: false, damage: 0,
-        targetShipId: null, targetShipName: null,
+        targetQ: targetShip.q, targetR: targetShip.r, hit: false, damage: 0,
+        targetShipId: targetShip.id, targetShipName: targetShip.name,
       });
     }
   }

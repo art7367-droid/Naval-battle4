@@ -5,8 +5,8 @@ interface HexGridProps {
   playerShips: Ship[];
   enemyShips: Ship[];
   phase: GamePhase;
-  selectedTarget?: { q: number; r: number } | null;
-  shotTargets?: { shipId: number; targetQ: number; targetR: number }[];
+  selectedTarget?: { shipId: number } | null;
+  shotTargets?: { shipId: number; targetShipId: number }[];
   shots?: Shot[];
   enemyShots?: Shot[];
   selectedShipForMove?: Ship | null;
@@ -67,7 +67,8 @@ export default function HexGrid({
           Array.from({ length: BOARD_SIZE }).map((_, q) => {
             const pos = getHexPosition(q, r, HEX_SIZE);
             const clickable = isClickable(q, r);
-            const isSelected = selectedTarget && selectedTarget.q === q && selectedTarget.r === r;
+            // Проверяем, является ли этот гекс позицией выбранного корабля-цели
+            const isSelected = selectedTarget && enemyShips.some(s => s.id === selectedTarget.shipId && s.q === q && s.r === r);
             const isReachable = reachableHexes.some(h => h.q === q && h.r === r);
 
             return (

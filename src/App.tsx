@@ -156,6 +156,8 @@ function App() {
         draft: dbShip.draft,
         displacementStandard: dbShip.displacementStandard,
         displacementFull: dbShip.displacementFull,
+        backgroundImage: dbShip.compartmentData?.backgroundImage,
+        backgroundPosition: dbShip.compartmentData?.backgroundPosition,
       };
     });
     
@@ -231,6 +233,8 @@ function App() {
         draft: dbShip.draft,
         displacementStandard: dbShip.displacementStandard,
         displacementFull: dbShip.displacementFull,
+        backgroundImage: dbShip.compartmentData?.backgroundImage,
+        backgroundPosition: dbShip.compartmentData?.backgroundPosition,
       };
     });
     

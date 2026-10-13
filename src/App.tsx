@@ -103,17 +103,17 @@ function App() {
       const totalHP = compartments.reduce((sum: number, c: any) => sum + c.maxHP, 0);
       
       // Увеличиваем точность и урон в зависимости от класса
-      let accuracy = 70;
-      let damage = 30;
+      let accuracy = 85;
+      let damage = 50;
       if (dbShip.class === 'battleship') {
-        accuracy = 80;
-        damage = 45;
+        accuracy = 90;
+        damage = 60;
       } else if (dbShip.class === 'cruiser') {
-        accuracy = 75;
-        damage = 35;
+        accuracy = 85;
+        damage = 45;
       } else {
-        accuracy = 70;
-        damage = 25;
+        accuracy = 80;
+        damage = 35;
       }
       
       return {

@@ -143,13 +143,45 @@ export function executeShots(
   for (const shot of shots) {
     const attacker = attackerShips.find(s => s.id === shot.shipId);
     if (!attacker || attacker.currentHP <= 0) continue;
+    
     const distance = hexDistance(attacker.q, attacker.r, shot.targetQ, shot.targetR);
-    if (distance > attacker.range) continue;
     const targetShip = newShips.find(s => s.q === shot.targetQ && s.r === shot.targetR && s.currentHP > 0);
     
+    // Если цель вне дальности - промах
+    if (distance > attacker.range) {
+      executedShots.push({
+        shipId: attacker.id,
+        shipName: attacker.name,
+        shipType: attacker.type,
+        targetQ: shot.targetQ,
+        targetR: shot.targetR,
+        hit: false,
+        damage: 0,
+        targetShipId: null,
+        targetShipName: null,
+      });
+      continue;
+    }
+    
+    // Если цели нет на клетке - промах
+    if (!targetShip) {
+      executedShots.push({
+        shipId: attacker.id,
+        shipName: attacker.name,
+        shipType: attacker.type,
+        targetQ: shot.targetQ,
+        targetR: shot.targetR,
+        hit: false,
+        damage: 0,
+        targetShipId: null,
+        targetShipName: null,
+      });
+      continue;
+    }
+    
     // Бонус к точности за близкую дистанцию
-    const accuracyBonus = distance <= 3 ? 20 : distance <= 6 ? 10 : 0;
-    const effectiveAccuracy = Math.min(95, attacker.accuracy + accuracyBonus);
+    const accuracyBonus = distance <= 3 ? 25 : distance <= 6 ? 15 : 5;
+    const effectiveAccuracy = Math.min(98, attacker.accuracy + accuracyBonus);
     
     const hitRoll = Math.random() * 100;
     const hit = hitRoll < effectiveAccuracy;
@@ -168,7 +200,7 @@ export function executeShots(
         const armor = updatedCompartment.armor;
         
         // Бонус за близкую дистанцию
-        const distanceBonus = distance <= 3 ? 1.5 : distance <= 6 ? 1.2 : 1.0;
+        const distanceBonus = distance <= 3 ? 2.0 : distance <= 6 ? 1.5 : 1.2;
         const effectivePenetration = penetration * distanceBonus;
         
         let effectiveDamage = attacker.damage;
@@ -176,15 +208,15 @@ export function executeShots(
         // Улучшенная система пробития брони
         if (effectivePenetration >= armor) {
           effectiveDamage = Math.floor(attacker.damage * distanceBonus); // Полное пробитие
-        } else if (effectivePenetration >= armor * 0.7) {
-          effectiveDamage = Math.floor(attacker.damage * 0.8 * distanceBonus); // Частичное пробитие
-        } else if (effectivePenetration >= armor * 0.4) {
-          effectiveDamage = Math.floor(attacker.damage * 0.5 * distanceBonus); // Слабое пробитие
+        } else if (effectivePenetration >= armor * 0.5) {
+          effectiveDamage = Math.floor(attacker.damage * 0.7 * distanceBonus); // Частичное пробитие
+        } else if (effectivePenetration >= armor * 0.25) {
+          effectiveDamage = Math.floor(attacker.damage * 0.4 * distanceBonus); // Слабое пробитие
         } else {
-          effectiveDamage = Math.floor(attacker.damage * 0.3 * distanceBonus); // Минимальный урон
+          effectiveDamage = Math.floor(attacker.damage * 0.2 * distanceBonus); // Минимальный урон
         }
         
-        const compartmentDamage = Math.floor(effectiveDamage * 0.8);
+        const compartmentDamage = Math.floor(effectiveDamage);
         updatedCompartment.currentHP = Math.max(0, updatedCompartment.currentHP - compartmentDamage);
         if (updatedCompartment.currentHP <= 0) updatedCompartment.status = 'destroyed';
         else if (updatedCompartment.currentHP < updatedCompartment.maxHP * 0.5) updatedCompartment.status = 'damaged';

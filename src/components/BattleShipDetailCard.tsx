@@ -1,4 +1,5 @@
 import { Ship, Compartment, getCompartmentTypeColor, getCompartmentTypeName } from '../types';
+import ShipSchematic from '../ShipSchematic';
 
 interface BattleShipDetailCardProps {
   ship: Ship | null;
@@ -20,14 +21,6 @@ export default function BattleShipDetailCard({ ship, hitMarkers = [] }: BattleSh
   const shipHitMarkers = hitMarkers.filter(m => m.shipId === ship.id);
   const totalDamage = shipHitMarkers.reduce((sum, m) => sum + m.damage, 0);
 
-  // Группируем отсеки по палубам
-  const compartmentsByDeck = {
-    deck: ship.compartments.filter(c => c.deck === 'deck').sort((a, b) => (a.positionFromBow || 0) - (b.positionFromBow || 0)),
-    upper: ship.compartments.filter(c => c.deck === 'upper').sort((a, b) => (a.positionFromBow || 0) - (b.positionFromBow || 0)),
-    middle: ship.compartments.filter(c => c.deck === 'middle').sort((a, b) => (a.positionFromBow || 0) - (b.positionFromBow || 0)),
-    lower: ship.compartments.filter(c => c.deck === 'lower').sort((a, b) => (a.positionFromBow || 0) - (b.positionFromBow || 0)),
-  };
-
   const getCompartmentColor = (comp: Compartment) => {
     return getCompartmentTypeColor(comp.type, comp.status);
   };
@@ -36,51 +29,7 @@ export default function BattleShipDetailCard({ ship, hitMarkers = [] }: BattleSh
     return shipHitMarkers.filter(m => m.compartmentId === compId);
   };
 
-  const renderCompartment = (comp: Compartment, idx: number, total: number) => {
-    const compWidth = 100 / total;
-    const hits = getHitMarkersForCompartment(comp.id);
-    const color = getCompartmentColor(comp);
-    
-    return (
-      <div
-        key={comp.id}
-        className="relative border border-slate-600 rounded"
-        style={{
-          width: `${compWidth}%`,
-          height: '40px',
-          backgroundColor: color,
-          opacity: 0.8
-        }}
-        title={`${comp.name} (${getCompartmentTypeName(comp.type)})\nСтатус: ${comp.status}\nHP: ${comp.currentHP}/${comp.maxHP}${comp.flooded > 0 ? `\nЗатопление: ${Math.round(comp.flooded * 100)}%` : ''}${comp.fire > 0 ? `\nПожар: ${Math.round(comp.fire * 100)}%` : ''}${hits.length > 0 ? `\nПопаданий: ${hits.length}` : ''}`}
-      >
-        {/* Иконка затопления */}
-        {comp.flooded > 0 && (
-          <div className="absolute top-0 left-0 w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center text-xs">
-            💧
-          </div>
-        )}
-        
-        {/* Иконка пожара */}
-        {comp.fire > 0 && (
-          <div className="absolute top-0 right-0 w-4 h-4 bg-red-600 rounded-full flex items-center justify-center text-xs">
-            🔥
-          </div>
-        )}
-        
-        {/* Маркеры попаданий */}
-        {hits.length > 0 && (
-          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 bg-red-600 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold text-white border border-white">
-            {hits.length}
-          </div>
-        )}
-        
-        {/* Название отсека */}
-        <div className="absolute inset-0 flex items-center justify-center text-[8px] text-white font-semibold pointer-events-none overflow-hidden">
-          {comp.name.length > 15 ? comp.name.substring(0, 12) + '...' : comp.name}
-        </div>
-      </div>
-    );
-  };
+
 
   return (
     <div className="w-[600px] bg-slate-800/50 rounded-lg p-4 border border-slate-600">
@@ -100,46 +49,7 @@ export default function BattleShipDetailCard({ ship, hitMarkers = [] }: BattleSh
       {/* Схема отсеков */}
       <div className="mb-3 p-2 bg-slate-900/50 rounded border border-slate-700">
         <div className="text-xs font-bold text-slate-300 mb-2">📐 Схема отсеков:</div>
-        
-        {/* Палуба */}
-        {compartmentsByDeck.deck.length > 0 && (
-          <div className="mb-2">
-            <div className="text-[10px] text-slate-400 mb-1">Палуба:</div>
-            <div className="flex gap-1">
-              {compartmentsByDeck.deck.map((comp, idx) => renderCompartment(comp, idx, compartmentsByDeck.deck.length))}
-            </div>
-          </div>
-        )}
-        
-        {/* Верхняя палуба */}
-        {compartmentsByDeck.upper.length > 0 && (
-          <div className="mb-2">
-            <div className="text-[10px] text-slate-400 mb-1">Верхняя палуба:</div>
-            <div className="flex gap-1">
-              {compartmentsByDeck.upper.map((comp, idx) => renderCompartment(comp, idx, compartmentsByDeck.upper.length))}
-            </div>
-          </div>
-        )}
-        
-        {/* Средняя палуба */}
-        {compartmentsByDeck.middle.length > 0 && (
-          <div className="mb-2">
-            <div className="text-[10px] text-slate-400 mb-1">Средняя палуба:</div>
-            <div className="flex gap-1">
-              {compartmentsByDeck.middle.map((comp, idx) => renderCompartment(comp, idx, compartmentsByDeck.middle.length))}
-            </div>
-          </div>
-        )}
-        
-        {/* Нижняя палуба */}
-        {compartmentsByDeck.lower.length > 0 && (
-          <div className="mb-2">
-            <div className="text-[10px] text-slate-400 mb-1">Нижняя палуба:</div>
-            <div className="flex gap-1">
-              {compartmentsByDeck.lower.map((comp, idx) => renderCompartment(comp, idx, compartmentsByDeck.lower.length))}
-            </div>
-          </div>
-        )}
+        <ShipSchematic ship={ship} hitMarkers={hitMarkers} />
       </div>
 
       {/* Характеристики */}

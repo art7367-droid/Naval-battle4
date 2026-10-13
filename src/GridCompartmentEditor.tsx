@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Ship, Compartment, CompartmentDeck, CompartmentPosition as CompartmentPositionType } from './types';
+import { Ship, Compartment, CompartmentDeck, CompartmentPosition as CompartmentPositionType, CompartmentType, getCompartmentTypeColor } from './types';
 
 interface GridCompartmentEditorProps {
   ship: Ship;
@@ -139,6 +139,7 @@ export default function GridCompartmentEditor({
   const addCompartment = () => {
     const newCompartment: Compartment = {
       id: `comp_${Date.now()}_${Math.random()}`, position: 'mid', deck: 'lower', side: 'center',
+      type: 'other',
       name: `Отсек ${compartments.length + 1}`,
       maxHP: 20, currentHP: 20, status: 'intact', watertight: true, armor: 50,
       flooded: 0, fire: 0, components: [], adjacentIds: [], lengthMeters: 5, positionFromBow: 0
@@ -166,13 +167,7 @@ export default function GridCompartmentEditor({
   };
 
   const getCompartmentColor = (comp: Compartment) => {
-    switch (comp.status) {
-      case 'destroyed': return '#dc2626';
-      case 'flooded': return '#2563eb';
-      case 'on_fire': return '#f97316';
-      case 'damaged': return '#ea580c';
-      default: return '#16a34a';
-    }
+    return getCompartmentTypeColor(comp.type, comp.status);
   };
 
   const updateCompartment = (id: string, updates: Partial<Compartment>) => {
@@ -261,10 +256,28 @@ export default function GridCompartmentEditor({
                 <div className="text-xs text-slate-400">{comp.name}</div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
+                    <label className="text-[10px] text-slate-400">Тип отсека:</label>
+                    <select value={comp.type} onChange={(e) => updateCompartment(comp.id, { type: e.target.value as CompartmentType })}
+                      className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white">
+                      <option value="bridge">Мостик</option>
+                      <option value="control_system">Система управления</option>
+                      <option value="weaponry">Вооружение</option>
+                      <option value="propulsion">ГЭУ</option>
+                      <option value="rudder">Руль</option>
+                      <option value="propellers">Винты</option>
+                      <option value="fuel">Топливо</option>
+                      <option value="ammunition">Боезапас</option>
+                      <option value="other">Остальные</option>
+                    </select>
+                  </div>
+                  <div>
                     <label className="text-[10px] text-slate-400">Палуба:</label>
                     <select value={comp.deck} onChange={(e) => updateCompartment(comp.id, { deck: e.target.value as CompartmentDeck })}
                       className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white">
-                      <option value="upper">Верхняя</option><option value="middle">Средняя</option><option value="lower">Нижняя</option>
+                      <option value="lower">Нижняя</option>
+                      <option value="middle">Средняя</option>
+                      <option value="upper">Верхняя</option>
+                      <option value="deck">Палуба</option>
                     </select>
                   </div>
                   <div>

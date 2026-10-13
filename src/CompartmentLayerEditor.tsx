@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Ship, Compartment, CompartmentDeck, CompartmentPosition } from './types';
+import { Ship, Compartment, CompartmentDeck, CompartmentPosition, getCompartmentTypeColor } from './types';
 
 interface CompartmentLayerEditorProps {
   ship: Ship;
@@ -67,6 +67,7 @@ export default function CompartmentLayerEditor({
       
       const newCompartment: Compartment = {
         id: `comp_${Date.now()}`, position, deck: 'upper', side: 'center',
+        type: 'other',
         name: `Отсек ${compartments.length + 1}`,
         maxHP: 20, currentHP: 20, status: 'intact',
         watertight: true, armor: 50, flooded: 0, fire: 0,
@@ -80,13 +81,7 @@ export default function CompartmentLayerEditor({
   };
 
   const getCompartmentColor = (comp: Compartment) => {
-    switch (comp.status) {
-      case 'destroyed': return '#dc2626';
-      case 'flooded': return '#2563eb';
-      case 'on_fire': return '#f97316';
-      case 'damaged': return '#ea580c';
-      default: return '#16a34a';
-    }
+    return getCompartmentTypeColor(comp.type, comp.status);
   };
 
   return (

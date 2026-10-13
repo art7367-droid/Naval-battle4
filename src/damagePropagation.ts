@@ -24,7 +24,7 @@ export function propagateFires(ships: Ship[], turn: number): { ships: Ship[]; ne
     const shipLogs: BattleLogEntry[] = [];
     const burningCompartments = updatedCompartments.filter(c => c.fire > 0);
     burningCompartments.forEach(burningComp => {
-      const hasFuel = burningComp.components.some(c => c.type === 'fuel_tank');
+      const hasFuel = burningComp.type === 'fuel';
       if (hasFuel && burningComp.fire < 1.0) burningComp.fire = Math.min(1.0, burningComp.fire + 0.05);
       burningComp.adjacentIds.forEach(adjId => {
         const adjacentComp = updatedCompartments.find(c => c.id === adjId);
@@ -96,8 +96,11 @@ export function propagateFlooding(ships: Ship[], turn: number): { ships: Ship[];
     });
     updatedCompartments.forEach(comp => {
       if (comp.flooded > 0) {
-        const pump = comp.components.find(c => c.type === 'pump' && c.status === 'operational');
-        if (pump) comp.flooded = Math.max(0, comp.flooded - 0.05);
+        // Насосы не выделяются в отдельный тип - их эффективность зависит от общего состояния корабля
+        const overallHealth = comp.currentHP / comp.maxHP;
+        if (overallHealth > 0.5) {
+          comp.flooded = Math.max(0, comp.flooded - 0.03);
+        }
       }
     });
     return { ...ship, compartments: updatedCompartments, battleLog: [...ship.battleLog, ...shipLogs] };
@@ -113,10 +116,9 @@ export function checkAmmoDetonation(ships: Ship[], turn: number): { ships: Ship[
     const shipLogs: BattleLogEntry[] = [];
     updatedCompartments.forEach(comp => {
       if (comp.detonated) return;
-      const ammoMag = comp.components.find(c => c.type === 'ammo_magazine');
-      if (!ammoMag) return;
+      if (comp.type !== 'ammunition') return;
       const hasFire = comp.fire > 0.5;
-      const ammoDestroyed = ammoMag.status === 'destroyed';
+      const ammoDestroyed = comp.status === 'destroyed';
       const criticalDamage = comp.currentHP < comp.maxHP * 0.2;
       let detonationChance = 0;
       if (ammoDestroyed && hasFire) detonationChance = 0.4;
@@ -156,7 +158,7 @@ export function checkShipSinking(ships: Ship[], turn: number): { ships: Ship[]; 
     if (stats.buoyancy <= 0.05) { isSunk = true; sinkCause = 'buoyancy'; }
     else if (stats.flooding >= 0.60) { isSunk = true; sinkCause = 'flooding'; }
     const allAmmoDetonated = ship.compartments
-      .filter(c => c.components.some(comp => comp.type === 'ammo_magazine'))
+      .filter(c => c.type === 'ammunition')
       .every(c => c.detonated);
     if (allAmmoDetonated && ship.compartments.some(c => c.detonated)) { isSunk = true; sinkCause = 'detonation'; }
     if (isSunk && !ship.isSunk) {
@@ -172,8 +174,41 @@ export function checkShipSinking(ships: Ship[], turn: number): { ships: Ship[]; 
 function calculateShipStatsForShip(ship: Ship) {
   const stats = { speed: 1.0, maneuverability: 1.0, mainGunFire: 1.0, aaFire: 1.0, detection: 1.0, buoyancy: 1.0, list: 0.0, trim: 0.0, fires: 0, flooding: 0.0 };
   let totalFlooded = 0, totalCompartments = 0, portFlooded = 0, starboardFlooded = 0, bowFlooded = 0, sternFlooded = 0;
+  
+  let propulsionDamage = 0, propulsionCount = 0;
+  let rudderDamage = 0, rudderCount = 0;
+  let bridgeDamage = 0, bridgeCount = 0;
+  let controlDamage = 0, controlCount = 0;
+  let weaponDamage = 0, weaponCount = 0;
+  
   ship.compartments.forEach(comp => {
     totalCompartments++;
+    const compHealth = comp.maxHP > 0 ? comp.currentHP / comp.maxHP : 0;
+    
+    switch (comp.type) {
+      case 'propulsion':
+        propulsionCount++;
+        propulsionDamage += (1 - compHealth);
+        break;
+      case 'rudder':
+      case 'propellers':
+        rudderCount++;
+        rudderDamage += (1 - compHealth);
+        break;
+      case 'bridge':
+        bridgeCount++;
+        bridgeDamage += (1 - compHealth);
+        break;
+      case 'control_system':
+        controlCount++;
+        controlDamage += (1 - compHealth);
+        break;
+      case 'weaponry':
+        weaponCount++;
+        weaponDamage += (1 - compHealth);
+        break;
+    }
+    
     if (comp.flooded > 0) {
       totalFlooded += comp.flooded;
       if (comp.side === 'port') portFlooded += comp.flooded;
@@ -182,17 +217,31 @@ function calculateShipStatsForShip(ship: Ship) {
       if (comp.position === 'stern' || comp.position === 'aft') sternFlooded += comp.flooded;
     }
     if (comp.fire > 0) stats.fires++;
-    comp.components.forEach(component => {
-      const effectiveness = component.currentHP / component.maxHP;
-      switch (component.type) {
-        case 'engine': case 'boiler': case 'propeller': stats.speed *= (0.5 + effectiveness * 0.5); break;
-        case 'rudder': case 'bridge': stats.maneuverability *= (0.3 + effectiveness * 0.7); break;
-        case 'forward_turret': case 'aft_turret': case 'fire_control': stats.mainGunFire *= (0.4 + effectiveness * 0.6); break;
-        case 'aa_gun': stats.aaFire *= (0.4 + effectiveness * 0.6); break;
-        case 'radar': stats.detection *= (0.5 + effectiveness * 0.5); break;
-      }
-    });
   });
+  
+  if (propulsionCount > 0) {
+    const avgDamage = propulsionDamage / propulsionCount;
+    stats.speed = Math.max(0.1, 1.0 - avgDamage * 0.8);
+  }
+  if (rudderCount > 0) {
+    const avgDamage = rudderDamage / rudderCount;
+    stats.maneuverability = Math.max(0.1, 1.0 - avgDamage * 0.9);
+  }
+  if (bridgeCount > 0) {
+    const avgDamage = bridgeDamage / bridgeCount;
+    stats.maneuverability *= Math.max(0.3, 1.0 - avgDamage * 0.5);
+  }
+  if (controlCount > 0) {
+    const avgDamage = controlDamage / controlCount;
+    stats.detection = Math.max(0.1, 1.0 - avgDamage * 0.7);
+    stats.mainGunFire *= Math.max(0.4, 1.0 - avgDamage * 0.4);
+  }
+  if (weaponCount > 0) {
+    const avgDamage = weaponDamage / weaponCount;
+    stats.mainGunFire *= Math.max(0.2, 1.0 - avgDamage * 0.8);
+    stats.aaFire *= Math.max(0.2, 1.0 - avgDamage * 0.8);
+  }
+  
   if (totalCompartments > 0) {
     stats.flooding = totalFlooded / totalCompartments;
     stats.buoyancy = Math.max(0, 1.0 - stats.flooding * 0.8);

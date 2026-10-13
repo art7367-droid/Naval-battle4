@@ -43,13 +43,16 @@ export default function ShipDetailView({ ship }: ShipDetailViewProps) {
 
   const allEffects: { name: string; effect: string; severity: 'damaged' | 'destroyed' }[] = [];
   ship.compartments.forEach(comp => {
-    comp.components.forEach(component => {
-      if (component.status !== 'operational') {
-        allEffects.push({ name: component.name, effect: component.effect, severity: component.status });
-      }
-    });
-    if (comp.status === 'flooded') {
-      allEffects.push({ name: `${comp.name} (затоплен)`, effect: 'Снижает плавучесть', severity: 'damaged' });
+    if (comp.status === 'destroyed') {
+      allEffects.push({ name: comp.name, effect: 'Отсек уничтожен', severity: 'destroyed' });
+    } else if (comp.status === 'damaged') {
+      allEffects.push({ name: comp.name, effect: 'Отсек повреждён', severity: 'damaged' });
+    }
+    if (comp.fire > 0) {
+      allEffects.push({ name: `${comp.name} (пожар)`, effect: `Интенсивность: ${Math.round(comp.fire * 100)}%`, severity: 'damaged' });
+    }
+    if (comp.flooded > 0) {
+      allEffects.push({ name: `${comp.name} (затоплен)`, effect: `Затопление: ${Math.round(comp.flooded * 100)}%`, severity: 'damaged' });
     }
   });
 

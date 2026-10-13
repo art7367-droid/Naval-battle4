@@ -39,6 +39,7 @@ export interface ShipDatabaseEntry {
       position: string;
       deck: string;
       side: string;
+      type: string;
       name: string;
       maxHP: number;
       currentHP: number;

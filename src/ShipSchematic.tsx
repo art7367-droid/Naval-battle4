@@ -1,4 +1,4 @@
-import { Ship, Compartment } from './types';
+import { Ship, Compartment, getCompartmentTypeColor } from './types';
 import BattleshipSuperstructure from './BattleshipSuperstructure';
 
 interface ShipSchematicProps {
@@ -15,16 +15,11 @@ export default function ShipSchematic({
   compartmentOpacity = 0.6 
 }: ShipSchematicProps) {
   const getCompartmentColor = (comp: Compartment) => {
-    switch (comp.status) {
-      case 'destroyed': return '#dc2626';
-      case 'flooded': return '#2563eb';
-      case 'on_fire': return '#f97316';
-      case 'damaged': return '#ea580c';
-      default: return '#16a34a';
-    }
+    return getCompartmentTypeColor(comp.type, comp.status);
   };
 
   const compartmentsByDeck = {
+    deck: ship.compartments.filter(c => c.deck === 'deck').sort((a, b) => (a.positionFromBow || 0) - (b.positionFromBow || 0)),
     upper: ship.compartments.filter(c => c.deck === 'upper').sort((a, b) => (a.positionFromBow || 0) - (b.positionFromBow || 0)),
     middle: ship.compartments.filter(c => c.deck === 'middle').sort((a, b) => (a.positionFromBow || 0) - (b.positionFromBow || 0)),
     lower: ship.compartments.filter(c => c.deck === 'lower').sort((a, b) => (a.positionFromBow || 0) - (b.positionFromBow || 0)),
@@ -60,6 +55,30 @@ export default function ShipSchematic({
           <BattleshipSuperstructure width={availableWidth} height={superstructureOffset} offsetX={padding} offsetY={20} />
         )}
         
+        {compartmentsByDeck.deck.length > 0 && (
+          <>
+            <text x="5" y={25 + superstructureOffset - deckHeight - deckGap} fill="#94a3b8" fontSize="8">Палуба</text>
+            {compartmentsByDeck.deck.map((comp, idx) => {
+              const x = padding + idx * compartmentWidth;
+              const y = 25 + superstructureOffset - deckHeight - deckGap + 5;
+              const color = getCompartmentColor(comp);
+              
+              return (
+                <g key={`deck-${comp.id}`}>
+                  <rect x={x} y={y} width={compartmentWidth - 1} height={deckHeight}
+                    fill={color} opacity={0.7} stroke="#475569" strokeWidth="0.5" />
+                  {comp.flooded > 0 && (
+                    <text x={x + compartmentWidth / 2} y={y + deckHeight / 2} fill="#60a5fa" fontSize="8" textAnchor="middle" dominantBaseline="middle">💧</text>
+                  )}
+                  {comp.fire > 0 && (
+                    <text x={x + compartmentWidth / 2 + 8} y={y + deckHeight / 2} fill="#f97316" fontSize="8" textAnchor="middle" dominantBaseline="middle">🔥</text>
+                  )}
+                </g>
+              );
+            })}
+          </>
+        )}
+
         <text x="5" y={25 + superstructureOffset} fill="#94a3b8" fontSize="8">Верхняя</text>
         {compartmentsByDeck.upper.map((comp, idx) => {
           const x = padding + idx * compartmentWidth;
@@ -175,22 +194,36 @@ export default function ShipSchematic({
       {renderSideView()}
       {renderTopView()}
       
-      <div className="flex gap-3 text-[9px] justify-center">
+      <div className="flex gap-3 text-[9px] justify-center flex-wrap">
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-green-600 rounded"></div>
-          <span className="text-slate-400">Целый</span>
+          <div className="w-3 h-3 rounded" style={{backgroundColor: '#78350f'}}></div>
+          <span className="text-slate-400">Оружие/Боезапас</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-orange-600 rounded"></div>
-          <span className="text-slate-400">Повреждён</span>
+          <div className="w-3 h-3 rounded" style={{backgroundColor: '#1e3a8a'}}></div>
+          <span className="text-slate-400">ГЭУ/Руль/Винты</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-blue-600 rounded"></div>
-          <span className="text-slate-400">Затоплен</span>
+          <div className="w-3 h-3 rounded" style={{backgroundColor: '#713f12'}}></div>
+          <span className="text-slate-400">Мостик/Управление</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-red-600 rounded"></div>
-          <span className="text-slate-400">Разрушен</span>
+          <div className="w-3 h-3 rounded" style={{backgroundColor: '#155e75'}}></div>
+          <span className="text-slate-400">Топливо</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 rounded" style={{backgroundColor: '#14532d'}}></div>
+          <span className="text-slate-400">Остальные</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 rounded" style={{backgroundColor: '#9ca3af'}}></div>
+          <span className="text-slate-400">Уничтожен</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="text-slate-400">💧 Затопление</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="text-slate-400">🔥 Пожар</span>
         </div>
       </div>
     </div>

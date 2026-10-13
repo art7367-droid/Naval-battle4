@@ -8,6 +8,7 @@ interface CompartmentData {
   position: string;
   deck: string;
   side: string;
+  type: string;
   name: string;
   maxHP: number;
   currentHP: number;
@@ -27,7 +28,9 @@ interface CompartmentGridPosition { gridX: number; gridY: number; }
 
 export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCardProps) {
   const [backgroundImage, setBackgroundImage] = useState<string | null>(ship.compartmentData?.backgroundImage || null);
-  const [compartments, setCompartments] = useState<CompartmentData[]>(ship.compartmentData?.compartments || []);
+  const [compartments, setCompartments] = useState<CompartmentData[]>(
+    (ship.compartmentData?.compartments || []).map(c => ({ ...c, type: c.type || 'other' }))
+  );
   const [compartmentPositions, setCompartmentPositions] = useState<Map<string, CompartmentGridPosition>>(new Map());
   const [selectedCompartment, setSelectedCompartment] = useState<string | null>(null);
   const [selectedCompartments, setSelectedCompartments] = useState<Set<string>>(new Set());
@@ -219,7 +222,7 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
     if (!targetPosition) { alert('Нет свободных ячеек!'); return; }
     const newCompartment: CompartmentData = {
       id: `comp_${Date.now()}_${Math.random()}`, gridX: targetPosition.gridX, gridY: targetPosition.gridY,
-      position: 'mid', deck: 'lower', side: 'center', name: `Отсек ${compartments.length + 1}`,
+      position: 'mid', deck: 'lower', side: 'center', type: 'other', name: `Отсек ${compartments.length + 1}`,
       maxHP: 20, currentHP: 20, status: 'intact', watertight: true, armor: 50
     };
     const newPositions = new Map(compartmentPositions);
@@ -241,13 +244,25 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
     setHasUnsavedChanges(true);
   };
 
-  const getCompartmentColor = (status: string) => {
-    switch (status) {
-      case 'destroyed': return '#dc2626';
-      case 'flooded': return '#2563eb';
-      case 'on_fire': return '#f97316';
-      case 'damaged': return '#ea580c';
-      default: return '#16a34a';
+  const getCompartmentColor = (type: string, status: string) => {
+    if (status === 'destroyed') return '#9ca3af';
+    
+    switch (type) {
+      case 'weaponry':
+      case 'ammunition':
+        return '#78350f';
+      case 'propulsion':
+      case 'rudder':
+      case 'propellers':
+        return '#1e3a8a';
+      case 'bridge':
+      case 'control_system':
+        return '#713f12';
+      case 'fuel':
+        return '#155e75';
+      case 'other':
+      default:
+        return '#14532d';
     }
   };
 
@@ -336,7 +351,7 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
                 if (!pos) return null;
                 const isSelected = selectedCompartment === comp.id || selectedCompartments.has(comp.id);
                 const isDragging = draggingCompartment === comp.id || (draggingMultiple && selectedCompartments.has(comp.id));
-                const color = getCompartmentColor(comp.status);
+                const color = getCompartmentColor(comp.type, comp.status);
                 let displayX = pos.gridX;
                 let displayY = pos.gridY;
                 if (isDragging && draggingCompartment) {
@@ -389,7 +404,8 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
                 <div className="space-y-3">
                   <div><label className="text-xs text-slate-400">Название:</label><input type="text" value={comp.name} onChange={(e) => updateCompartment(comp.id, { name: e.target.value })} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm text-white" /></div>
                   <div className="grid grid-cols-2 gap-2">
-                    <div><label className="text-xs text-slate-400">Палуба:</label><select value={comp.deck} onChange={(e) => updateCompartment(comp.id, { deck: e.target.value })} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white"><option value="upper">Верхняя</option><option value="middle">Средняя</option><option value="lower">Нижняя</option></select></div>
+                    <div><label className="text-xs text-slate-400">Тип отсека:</label><select value={comp.type} onChange={(e) => updateCompartment(comp.id, { type: e.target.value })} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white"><option value="bridge">Мостик</option><option value="control_system">Система управления</option><option value="weaponry">Вооружение</option><option value="propulsion">ГЭУ</option><option value="rudder">Руль</option><option value="propellers">Винты</option><option value="fuel">Топливо</option><option value="ammunition">Боезапас</option><option value="other">Остальные</option></select></div>
+                    <div><label className="text-xs text-slate-400">Палуба:</label><select value={comp.deck} onChange={(e) => updateCompartment(comp.id, { deck: e.target.value })} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white"><option value="lower">Нижняя</option><option value="middle">Средняя</option><option value="upper">Верхняя</option><option value="deck">Палуба</option></select></div>
                     <div><label className="text-xs text-slate-400">Позиция:</label><select value={comp.position} onChange={(e) => updateCompartment(comp.id, { position: e.target.value })} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white"><option value="bow">Нос</option><option value="forward">Носовая</option><option value="mid">Центр</option><option value="aft">Кормовая</option><option value="stern">Корма</option></select></div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">

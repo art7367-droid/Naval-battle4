@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Compartment, CompartmentPosition, CompartmentDeck, CompartmentSide, CompartmentStatus } from './types';
+import { Compartment, CompartmentPosition, CompartmentDeck, CompartmentSide, CompartmentStatus, CompartmentType, getCompartmentTypeName, getCompartmentTypeColor } from './types';
 
 interface ShipEditorProps {
   compartments: Compartment[];
@@ -42,6 +42,7 @@ export default function ShipEditor({ compartments, onCompartmentsChange }: ShipE
       const newCompartment: Compartment = {
         id: `comp_${Date.now()}`,
         position: 'mid', deck: 'middle', side: 'center',
+        type: 'other',
         name: `Отсек ${compartments.length + 1}`,
         maxHP: 20, currentHP: 20, status: 'intact',
         watertight: true, armor: 50, flooded: 0, fire: 0,
@@ -69,13 +70,8 @@ export default function ShipEditor({ compartments, onCompartmentsChange }: ShipE
     setSelectedCompartment(null);
   };
 
-  const getStatusColor = (status: CompartmentStatus) => {
-    switch (status) {
-      case 'destroyed': return '#dc2626';
-      case 'flooded': return '#2563eb';
-      case 'damaged': return '#ea580c';
-      default: return '#16a34a';
-    }
+  const getStatusColor = (comp: Compartment) => {
+    return getCompartmentTypeColor(comp.type, comp.status);
   };
 
   const selectedComp = compartments.find(c => c.id === selectedCompartment);
@@ -92,7 +88,7 @@ export default function ShipEditor({ compartments, onCompartmentsChange }: ShipE
         {compartments.map(comp => (
           <g key={comp.id}>
             <rect x={10} y={10} width={canvasWidth - 20} height={canvasHeight - 20}
-              fill={getStatusColor(comp.status)} opacity={0.7}
+              fill={getStatusColor(comp)} opacity={0.7}
               stroke={selectedCompartment === comp.id ? '#fbbf24' : '#475569'}
               strokeWidth={selectedCompartment === comp.id ? 2 : 1}
               onClick={() => handleCompartmentClick(comp.id)} className="cursor-pointer" />
@@ -118,6 +114,21 @@ export default function ShipEditor({ compartments, onCompartmentsChange }: ShipE
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
+              <label className="text-[10px] text-slate-400">Тип отсека:</label>
+              <select value={selectedComp.type} onChange={(e) => updateCompartment(selectedComp.id, { type: e.target.value as CompartmentType })}
+                className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white">
+                <option value="bridge">Мостик</option>
+                <option value="control_system">Система управления и обнаружения</option>
+                <option value="weaponry">Вооружение</option>
+                <option value="propulsion">ГЭУ</option>
+                <option value="rudder">Руль</option>
+                <option value="propellers">Винты</option>
+                <option value="fuel">Топливо</option>
+                <option value="ammunition">Боезапас</option>
+                <option value="other">Остальные отсеки</option>
+              </select>
+            </div>
+            <div>
               <label className="text-[10px] text-slate-400">Позиция:</label>
               <select value={selectedComp.position} onChange={(e) => updateCompartment(selectedComp.id, { position: e.target.value as CompartmentPosition })}
                 className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white">
@@ -129,8 +140,10 @@ export default function ShipEditor({ compartments, onCompartmentsChange }: ShipE
               <label className="text-[10px] text-slate-400">Палуба:</label>
               <select value={selectedComp.deck} onChange={(e) => updateCompartment(selectedComp.id, { deck: e.target.value as CompartmentDeck })}
                 className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white">
-                <option value="upper">Верхняя</option><option value="middle">Средняя</option>
-                <option value="lower">Нижняя</option><option value="bottom">Двойное дно</option>
+                <option value="lower">Нижняя</option>
+                <option value="middle">Средняя</option>
+                <option value="upper">Верхняя</option>
+                <option value="deck">Палуба</option>
               </select>
             </div>
             <div>

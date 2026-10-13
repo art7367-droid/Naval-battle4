@@ -76,6 +76,7 @@ function App() {
       // Используем compartmentData из БД если есть
       let compartments;
       if (dbShip.compartmentData?.compartments && dbShip.compartmentData.compartments.length > 0) {
+        console.log(`🚢 ${dbShip.name}: Загружаю ${dbShip.compartmentData.compartments.length} отсеков из БД`);
         compartments = dbShip.compartmentData.compartments.map(c => ({
           id: c.id,
           position: c.position as any,
@@ -96,6 +97,7 @@ function App() {
           positionFromBow: c.gridX * 5
         }));
       } else {
+        console.log(`🚢 ${dbShip.name}: Нет данных в БД, создаю ${shipLength}м корабль автоматически`);
         compartments = createCompartments(dbShip.class as any, shipLength);
       }
       

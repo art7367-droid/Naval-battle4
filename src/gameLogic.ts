@@ -140,12 +140,19 @@ export function executeShots(
   let newShips = defenderShips.map(s => ({ ...s }));
   const executedShots: Shot[] = [];
 
+  console.log(`🎯 executeShots: Получено ${shots.length} выстрелов`);
+  
   for (const shot of shots) {
     const attacker = attackerShips.find(s => s.id === shot.shipId);
-    if (!attacker || attacker.currentHP <= 0) continue;
+    if (!attacker || attacker.currentHP <= 0) {
+      console.log(`⚠️ Выстрел от корабля ${shot.shipId} пропущен: корабль не найден или уничтожен`);
+      continue;
+    }
     
     const distance = hexDistance(attacker.q, attacker.r, shot.targetQ, shot.targetR);
     const targetShip = newShips.find(s => s.q === shot.targetQ && s.r === shot.targetR && s.currentHP > 0);
+    
+    console.log(`🔫 ${attacker.name} стреляет в (${shot.targetQ},${shot.targetR}), дистанция: ${distance}, дальность: ${attacker.range}, цель: ${targetShip?.name || 'нет'}`);
     
     // Если цель вне дальности - промах
     if (distance > attacker.range) {
@@ -185,6 +192,8 @@ export function executeShots(
     
     const hitRoll = Math.random() * 100;
     const hit = hitRoll < effectiveAccuracy;
+    
+    console.log(`🎲 Бросок: ${hitRoll.toFixed(1)} vs ${effectiveAccuracy} → ${hit ? 'ПОПАДАНИЕ' : 'промах'}`);
 
     if (hit && targetShip) {
       newShips = newShips.map(ship => {

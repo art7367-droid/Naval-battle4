@@ -46,6 +46,12 @@ export default function ShipSchematic({
     middle: ship.compartments.filter(c => c.deck === 'middle').sort((a, b) => (a.positionFromBow || 0) - (b.positionFromBow || 0)),
     lower: ship.compartments.filter(c => c.deck === 'lower').sort((a, b) => (a.positionFromBow || 0) - (b.positionFromBow || 0)),
   };
+  
+  console.log(`📐 ${ship.name}: Всего отсеков: ${ship.compartments.length}`);
+  console.log(`  - Палуба: ${compartmentsByDeck.deck.length}`);
+  console.log(`  - Верхняя: ${compartmentsByDeck.upper.length}`);
+  console.log(`  - Средняя: ${compartmentsByDeck.middle.length}`);
+  console.log(`  - Нижняя: ${compartmentsByDeck.lower.length}`);
 
   const renderSideView = () => {
     const width = 478;

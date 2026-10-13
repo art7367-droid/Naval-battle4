@@ -41,6 +41,9 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
   const [backgroundPosition, setBackgroundPosition] = useState<GridPosition>(
     ship.compartmentData?.backgroundPosition || { x: 0, y: 0 }
   );
+  const [isBackgroundLocked, setIsBackgroundLocked] = useState<boolean>(
+    ship.compartmentData?.backgroundLocked || false
+  );
   const [draggingBackground, setDraggingBackground] = useState(false);
   const [backgroundDragOffset, setBackgroundDragOffset] = useState<GridPosition>({ x: 0, y: 0 });
   const [isSelecting, setIsSelecting] = useState(false);
@@ -83,6 +86,11 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
   };
 
   const handleBackgroundMouseDown = (e: React.MouseEvent) => {
+    // Если фон заблокирован, не позволяем его перемещать
+    if (isBackgroundLocked) {
+      return;
+    }
+    
     if (e.shiftKey) {
       e.preventDefault();
       const svgRect = svgRef.current?.getBoundingClientRect();
@@ -282,7 +290,8 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
       ...ship,
       compartmentData: {
         backgroundImage: backgroundImage || undefined,
-        backgroundPosition: backgroundPosition, // Сохраняем позицию фона
+        backgroundPosition: backgroundPosition,
+        backgroundLocked: isBackgroundLocked,
         compartments: compartments.map(c => ({
           ...c,
           gridX: compartmentPositions.get(c.id)?.gridX || c.gridX,
@@ -315,6 +324,19 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
           <>
             <button onClick={() => { setBackgroundImage(null); setHasUnsavedChanges(true); }} className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-xs text-white">✕ Удалить</button>
             <button onClick={() => setBackgroundPosition({ x: 0, y: 0 })} className="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-xs text-white">🎯 Сброс</button>
+            <button 
+              onClick={() => { 
+                setIsBackgroundLocked(!isBackgroundLocked); 
+                setHasUnsavedChanges(true);
+              }} 
+              className={`px-3 py-1 rounded text-xs text-white ${
+                isBackgroundLocked 
+                  ? 'bg-green-600 hover:bg-green-700' 
+                  : 'bg-yellow-600 hover:bg-yellow-700'
+              }`}
+            >
+              {isBackgroundLocked ? '🔒 Закреплено' : '🔓 Закрепить'}
+            </button>
           </>
         )}
         <button onClick={addCompartment} className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-xs font-semibold text-white">➕ Создать отсек</button>
@@ -337,7 +359,7 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
         <div className="flex-1 overflow-auto p-4 flex justify-center items-start">
           <div className="border border-slate-600 rounded bg-slate-900/50">
             <svg ref={svgRef} width={width} height={height + 40} className="cursor-default" onMouseDown={handleBackgroundMouseDown}>
-              {backgroundImage && (<image href={backgroundImage} x={backgroundPosition.x} y={backgroundPosition.y} opacity={0.8} className="cursor-move" />)}
+              {backgroundImage && (<image href={backgroundImage} x={backgroundPosition.x} y={backgroundPosition.y} opacity={0.8} className={isBackgroundLocked ? "pointer-events-none" : "cursor-move"} />)}
               {showGrid && (
                 <g opacity={0.3}>
                   {Array.from({ length: cols + 1 }).map((_, i) => (<line key={`v-${i}`} x1={padding + i * gridSize} y1={padding} x2={padding + i * gridSize} y2={height - padding} stroke="#64748b" strokeWidth="0.5" />))}

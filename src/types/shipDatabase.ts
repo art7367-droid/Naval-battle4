@@ -33,6 +33,7 @@ export interface ShipDatabaseEntry {
   compartmentData?: {
     backgroundImage?: string;
     backgroundPosition?: { x: number; y: number };
+    backgroundLocked?: boolean;
     compartments: Array<{
       id: string;
       gridX: number;

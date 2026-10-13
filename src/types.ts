@@ -24,9 +24,8 @@ export type CompartmentType =
   | 'propulsion'                // ГЭУ (котлы, турбины)
   | 'rudder'                    // Руль
   | 'propellers'                // Винты
-  | 'fuel'                      // Топливо
   | 'ammunition'                // Боезапас
-  | 'other';                    // Остальные отсеки (жилые и вспомогательные)
+  | 'other';                    // Остальные отсеки (жилые и вспомогательные, включая топливо)
 
 export interface BattleLogEntry {
   id: string;
@@ -267,7 +266,6 @@ export function getCompartmentTypeName(type: CompartmentType): string {
     case 'propulsion': return 'ГЭУ';
     case 'rudder': return 'Руль';
     case 'propellers': return 'Винты';
-    case 'fuel': return 'Топливо';
     case 'ammunition': return 'Боезапас';
     case 'other': return 'Остальные отсеки';
     default: return 'Отсек';
@@ -292,9 +290,7 @@ export function getCompartmentTypeColor(type: CompartmentType, status: Compartme
       return '#1e3a8a'; // Тёмно-синий
     case 'bridge':
     case 'control_system':
-      return '#713f12'; // Тёмно-жёлтый
-    case 'fuel':
-      return '#155e75'; // Тёмно-бирюзовый
+      return '#eab308'; // Жёлтый
     case 'other':
     default:
       return '#14532d'; // Тёмно-зелёный

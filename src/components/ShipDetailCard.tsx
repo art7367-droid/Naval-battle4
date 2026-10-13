@@ -282,9 +282,7 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
         return '#1e3a8a'; // Тёмно-синий
       case 'bridge':
       case 'control_system':
-        return '#713f12'; // Тёмно-жёлтый
-      case 'fuel':
-        return '#155e75'; // Тёмно-бирюзовый
+        return '#eab308'; // Жёлтый
       case 'other':
       default:
         return '#14532d'; // Тёмно-зелёный
@@ -483,12 +481,8 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
                 <span className="text-slate-300">ГЭУ / Руль / Винты</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded border border-slate-600" style={{backgroundColor: '#713f12'}}></div>
+                <div className="w-4 h-4 rounded border border-slate-600" style={{backgroundColor: '#eab308'}}></div>
                 <span className="text-slate-300">Мостик / Управление</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded border border-slate-600" style={{backgroundColor: '#155e75'}}></div>
-                <span className="text-slate-300">Топливо</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded border border-slate-600" style={{backgroundColor: '#14532d'}}></div>
@@ -527,7 +521,7 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
                 <div className="space-y-3">
                   <div><label className="text-xs text-slate-400">Название:</label><input type="text" value={comp.name} onChange={(e) => updateCompartment(comp.id, { name: e.target.value })} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm text-white" /></div>
                   <div className="grid grid-cols-2 gap-2">
-                    <div><label className="text-xs text-slate-400">Тип отсека:</label><select value={comp.type} onChange={(e) => updateCompartment(comp.id, { type: e.target.value })} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white"><option value="bridge">Мостик</option><option value="control_system">Система управления</option><option value="weaponry">Вооружение</option><option value="propulsion">ГЭУ</option><option value="rudder">Руль</option><option value="propellers">Винты</option><option value="fuel">Топливо</option><option value="ammunition">Боезапас</option><option value="other">Остальные</option></select></div>
+                    <div><label className="text-xs text-slate-400">Тип отсека:</label><select value={comp.type} onChange={(e) => updateCompartment(comp.id, { type: e.target.value })} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white"><option value="bridge">Мостик</option><option value="control_system">Система управления</option><option value="weaponry">Вооружение</option><option value="propulsion">ГЭУ</option><option value="rudder">Руль</option><option value="propellers">Винты</option><option value="ammunition">Боезапас</option><option value="other">Остальные</option></select></div>
                     <div><label className="text-xs text-slate-400">Палуба:</label><select value={comp.deck} onChange={(e) => updateCompartment(comp.id, { deck: e.target.value })} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white"><option value="lower">Нижняя</option><option value="middle">Средняя</option><option value="upper">Верхняя</option><option value="deck">Палуба</option></select></div>
                     <div><label className="text-xs text-slate-400">Позиция:</label><select value={comp.position} onChange={(e) => updateCompartment(comp.id, { position: e.target.value })} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white"><option value="bow">Нос</option><option value="forward">Носовая</option><option value="mid">Центр</option><option value="aft">Кормовая</option><option value="stern">Корма</option></select></div>
                   </div>

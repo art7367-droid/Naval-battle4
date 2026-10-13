@@ -24,8 +24,8 @@ export function propagateFires(ships: Ship[], turn: number): { ships: Ship[]; ne
     const shipLogs: BattleLogEntry[] = [];
     const burningCompartments = updatedCompartments.filter(c => c.fire > 0);
     burningCompartments.forEach(burningComp => {
-      const hasFuel = burningComp.type === 'fuel';
-      if (hasFuel && burningComp.fire < 1.0) burningComp.fire = Math.min(1.0, burningComp.fire + 0.05);
+      // Топливо теперь не выделяется в отдельный тип - пожар усиливается в любом отсеке
+      if (burningComp.fire < 1.0) burningComp.fire = Math.min(1.0, burningComp.fire + 0.03);
       burningComp.adjacentIds.forEach(adjId => {
         const adjacentComp = updatedCompartments.find(c => c.id === adjId);
         if (!adjacentComp) return;

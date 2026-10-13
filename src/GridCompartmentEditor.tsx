@@ -279,7 +279,6 @@ export default function GridCompartmentEditor({
                       <option value="propulsion">ГЭУ</option>
                       <option value="rudder">Руль</option>
                       <option value="propellers">Винты</option>
-                      <option value="fuel">Топливо</option>
                       <option value="ammunition">Боезапас</option>
                       <option value="other">Остальные</option>
                     </select>

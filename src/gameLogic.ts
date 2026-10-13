@@ -172,7 +172,7 @@ export function executeShots(
           updatedCompartment.flooded = Math.min(1.0, updatedCompartment.flooded + 0.3);
         }
         if (updatedCompartment.currentHP < updatedCompartment.maxHP * 0.5) {
-          const hasFuelOrAmmo = updatedCompartment.type === 'fuel' || updatedCompartment.type === 'ammunition';
+          const hasFuelOrAmmo = updatedCompartment.type === 'ammunition';
           if (hasFuelOrAmmo && Math.random() < 0.4) {
             updatedCompartment.fire = Math.min(1.0, updatedCompartment.fire + 0.3);
           }

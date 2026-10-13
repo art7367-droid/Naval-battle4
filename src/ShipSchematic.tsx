@@ -238,12 +238,8 @@ export default function ShipSchematic({
           <span className="text-slate-400">ГЭУ/Руль/Винты</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded" style={{backgroundColor: '#713f12'}}></div>
+          <div className="w-3 h-3 rounded" style={{backgroundColor: '#eab308'}}></div>
           <span className="text-slate-400">Мостик/Управление</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded" style={{backgroundColor: '#155e75'}}></div>
-          <span className="text-slate-400">Топливо</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded" style={{backgroundColor: '#14532d'}}></div>

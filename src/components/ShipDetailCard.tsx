@@ -363,7 +363,7 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
         <div className="flex-1 overflow-auto p-4 flex justify-center items-start">
           <div className="border border-slate-600 rounded bg-slate-900/50">
             <svg ref={svgRef} width={width} height={height + 40} className="cursor-default" onMouseDown={handleBackgroundMouseDown}>
-              {backgroundImage && (<image href={backgroundImage} x={backgroundPosition.x} y={backgroundPosition.y} opacity={0.8} className={isBackgroundLocked ? "pointer-events-none" : "cursor-move"} />)}
+              {backgroundImage && (<image href={backgroundImage} x={backgroundPosition.x} y={backgroundPosition.y} opacity={0.6} className={isBackgroundLocked ? "pointer-events-none" : "cursor-move"} />)}
               {showGrid && (
                 <g opacity={0.3}>
                   {Array.from({ length: cols + 1 }).map((_, i) => (<line key={`v-${i}`} x1={padding + i * gridSize} y1={padding} x2={padding + i * gridSize} y2={height - padding} stroke="#64748b" strokeWidth="0.5" />))}

@@ -535,7 +535,7 @@ interface BattleShipDetailCardProps {
     - **Фоновое изображение корабля**: 
       - Отображается backgroundImage из compartmentData
       - Используется backgroundPosition для точного позиционирования (как в ShipDetailCard)
-      - Прозрачность 0.8 для видимости отсеков поверх изображения
+      - Прозрачность 0.6 (60%) для видимости отсеков поверх изображения
       - preserveAspectRatio="xMidYMid meet" для корректного масштабирования
     - **Передача данных**: При создании кораблей из БД передаются поля gridX, gridY, backgroundImage и backgroundPosition
     - **Визуализация повреждений**: 
@@ -554,6 +554,7 @@ interface BattleShipDetailCardProps {
       - Жестко привязано к сетке отсеков через backgroundPosition
       - Заблокировано от перемещения (pointerEvents: 'none')
       - Позиционирование идентично ShipDetailCard (те же координаты)
+      - Прозрачность изображения: 60% (opacity: 0.6) по умолчанию
       - Заголовок секции изменен на "Схема повреждения корабля"
 
 ---

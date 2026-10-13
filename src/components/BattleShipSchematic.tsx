@@ -37,7 +37,7 @@ export default function BattleShipSchematic({ ship, hitMarkers = [] }: BattleShi
           href={ship.backgroundImage} 
           x={ship.backgroundPosition?.x || padding} 
           y={ship.backgroundPosition?.y || padding} 
-          opacity={0.8}
+          opacity={0.6}
           style={{ pointerEvents: 'none' }}
         />
       )}

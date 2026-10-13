@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Ship, GamePhase, Shot, Trajectory, BattleLogEntry, createCompartments, calculateShipStats } from './types';
 import { ShipDatabaseEntry } from './types/shipDatabase';
 import {
@@ -52,6 +52,16 @@ function App() {
   const [battleLog, setBattleLog] = useState<BattleLogEntry[]>([]);
   const [showBattleLog, setShowBattleLog] = useState(true); // Лог боя видим по умолчанию
   const [hitMarkers, setHitMarkers] = useState<Array<{shipId: number; compartmentId: string; turn: number; damage: number}>>([]);
+  
+  // useRef для хранения актуального значения playerShotTargets
+  const playerShotTargetsRef = useRef<{ shipId: number; targetShipId: number }[]>([]);
+  
+  // Обновляем ref при каждом изменении state
+  const setPlayerShotTargetsWithRef = (targets: { shipId: number; targetShipId: number }[]) => {
+    console.log(`🔄 setPlayerShotTargetsWithRef:`, targets);
+    playerShotTargetsRef.current = targets;
+    setPlayerShotTargets(targets);
+  };
 
   const startBattle = useCallback(() => {
     const pShips = generatePlayerShips();
@@ -397,16 +407,28 @@ function App() {
     console.log(`✅ Добавляем цель в playerShotTargets:`, newTarget);
     console.log(`📊 Текущие цели:`, playerShotTargets);
     
-    setPlayerShotTargets([...playerShotTargets, newTarget]);
+    const updatedTargets = [...playerShotTargets, newTarget];
+    console.log(`📝 Обновленные цели:`, updatedTargets);
+    setPlayerShotTargetsWithRef(updatedTargets);
 
     const nextAlive = playerShips.findIndex((s, i) => i > currentShipIndex && s.currentHP > 0);
+    console.log(`🔍 Следующий живой корабль:`, nextAlive);
+    console.log(`📊 currentShipIndex:`, currentShipIndex);
+    console.log(`🚢 Всего кораблей:`, playerShips.length);
+    
     if (nextAlive !== -1) {
+      console.log(`➡️ Переход к следующему кораблю`);
       setCurrentShipIndex(nextAlive);
       setSelectedTarget(null);
       setMessage(`Выберите цель для ${shipIcon(playerShips[nextAlive].type)} ${playerShips[nextAlive].name}`);
     } else {
+      console.log(`✅ Все корабли выбрали цели! Вызываем executePhase через 1 секунду`);
+      console.log(`📊 Целей для выстрела:`, updatedTargets.length);
       setMessage('Все корабли выбрали цели! Выполнение выстрелов...');
-      setTimeout(() => executePhase(), 1000);
+      setTimeout(() => {
+        console.log(`⏰ setTimeout сработал, вызываем executePhase`);
+        executePhase();
+      }, 1000);
     }
   }, [selectedTarget, playerShips, enemyShips, currentShipIndex, playerShotTargets]);
 
@@ -430,20 +452,31 @@ function App() {
   }, [playerShips, currentShipIndex]);
 
   const executePhase = useCallback(() => {
+    console.log(`🚀 executePhase вызван!`);
+    console.log(`📊 playerShotTargetsRef.current:`, playerShotTargetsRef.current);
+    console.log(`📊 playerShotTargetsRef.current.length:`, playerShotTargetsRef.current.length);
+    
+    const currentTargets = playerShotTargetsRef.current;
+    
+    if (currentTargets.length === 0) {
+      console.log(`⚠️ playerShotTargets пуст! Выстрелы не будут выполнены.`);
+    }
+    
     setPhase('execution');
     setIsAnimating(true);
     setMessage('Выстрелы выполняются...');
 
     setTimeout(() => {
-      console.log(`🔫 Выполнение выстрелов игрока: ${playerShotTargets.length} целей`);
-      playerShotTargets.forEach(t => {
+      console.log(`🔫 Выполнение выстрелов игрока: ${currentTargets.length} целей`);
+      console.log(`📋 Список целей:`, currentTargets);
+      currentTargets.forEach(t => {
         const attacker = playerShips.find(s => s.id === t.shipId);
         const target = enemyShips.find(s => s.id === t.targetShipId);
         console.log(`  ${attacker?.name} → ${target?.name}`);
       });
       
       // Выполняем выстрелы игрока
-      const playerResult = executeShots(playerShotTargets, playerShips, enemyShips);
+      const playerResult = executeShots(currentTargets, playerShips, enemyShips);
       let updatedEnemyShips = playerResult.updatedShips;
       setPlayerShots(playerResult.shots);
       
@@ -588,7 +621,7 @@ function App() {
     setPhase('movement');
     setCurrentShipIndex(0);
     setSelectedTarget(null);
-    setPlayerShotTargets([]);
+    setPlayerShotTargetsWithRef([]);
     setPlayerShots([]);
     setEnemyShots([]);
     setSelectedShipForMove(null);
@@ -635,7 +668,7 @@ function App() {
     setPlayerShips([]);
     setEnemyShips([]);
     setMessage('Нажмите "Начать бой" для размещения кораблей');
-    setPlayerShotTargets([]);
+    setPlayerShotTargetsWithRef([]);
     setPlayerShots([]);
     setEnemyShots([]);
     setSelectedTarget(null);

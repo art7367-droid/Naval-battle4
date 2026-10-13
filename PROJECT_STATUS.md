@@ -537,6 +537,22 @@ npm run dev
 
 ## Отладка системы боя (последнее обновление)
 
+### Исправлена проблема с замыканиями React
+
+**Проблема**: Функция `executePhase` использовала `playerShotTargets` из замыкания, но из-за асинхронности React state это было старое значение (пустой массив).
+
+**Решение**: Добавлен `useRef` для хранения актуального значения `playerShotTargets`:
+```typescript
+const playerShotTargetsRef = useRef<{ shipId: number; targetShipId: number }[]>([]);
+
+const setPlayerShotTargetsWithRef = (targets) => {
+  playerShotTargetsRef.current = targets;
+  setPlayerShotTargets(targets);
+};
+```
+
+Теперь `executePhase` использует `playerShotTargetsRef.current` вместо `playerShotTargets` из замыкания.
+
 ### Добавленная отладочная информация:
 
 #### 1. handleCellClick (клик по гексу)

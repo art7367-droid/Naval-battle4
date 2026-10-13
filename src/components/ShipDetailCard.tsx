@@ -38,7 +38,9 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
   const [draggingMultiple, setDraggingMultiple] = useState(false);
   const [dragOffset, setDragOffset] = useState<GridPosition>({ x: 0, y: 0 });
   const [dragPosition, setDragPosition] = useState<GridPosition>({ x: 0, y: 0 });
-  const [backgroundPosition, setBackgroundPosition] = useState<GridPosition>({ x: 0, y: 0 });
+  const [backgroundPosition, setBackgroundPosition] = useState<GridPosition>(
+    ship.compartmentData?.backgroundPosition || { x: 0, y: 0 }
+  );
   const [draggingBackground, setDraggingBackground] = useState(false);
   const [backgroundDragOffset, setBackgroundDragOffset] = useState<GridPosition>({ x: 0, y: 0 });
   const [isSelecting, setIsSelecting] = useState(false);
@@ -94,12 +96,14 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
     }
     if (!backgroundImage) return;
     e.preventDefault();
+    e.stopPropagation();
     const svgRect = svgRef.current?.getBoundingClientRect();
     if (!svgRect) return;
     const mouseX = e.clientX - svgRect.left;
     const mouseY = e.clientY - svgRect.top;
     setDraggingBackground(true);
     setBackgroundDragOffset({ x: mouseX - backgroundPosition.x, y: mouseY - backgroundPosition.y });
+    setHasUnsavedChanges(true); // Помечаем что есть несохранённые изменения
   };
 
   const handleMouseDown = (e: React.MouseEvent, compId: string) => {
@@ -158,6 +162,9 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
       setIsSelecting(false);
       setSelectionStart(null);
       setSelectionEnd(null);
+    } else if (draggingBackground) {
+      // Завершение перемещения фона - изменения уже помечены в handleBackgroundMouseDown
+      setDraggingBackground(false);
     } else if (draggingCompartment) {
       const deltaX = dragPosition.x - (compartmentPositions.get(draggingCompartment)?.gridX || 0);
       const deltaY = dragPosition.y - (compartmentPositions.get(draggingCompartment)?.gridY || 0);
@@ -203,7 +210,7 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
     setDraggingCompartment(null);
     setDraggingMultiple(false);
     setDraggingBackground(false);
-  }, [isSelecting, selectionStart, selectionEnd, draggingCompartment, draggingMultiple, draggingBackground, dragPosition, compartmentPositions, compartments, selectedCompartments, gridSize, cols, rows]);
+  }, [isSelecting, selectionStart, selectionEnd, draggingCompartment, draggingMultiple, dragPosition, compartmentPositions, compartments, selectedCompartments, gridSize, cols, rows]);
 
   useEffect(() => {
     window.addEventListener('mousemove', handleMouseMove);
@@ -245,8 +252,12 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
   };
 
   const getCompartmentColor = (type: string, status: string) => {
-    if (status === 'destroyed') return '#9ca3af';
+    // Уничтоженный отсек - тёмно-серый
+    if (status === 'destroyed') return '#374151';
+    // Повреждённый отсек - светло-серый
+    if (status === 'damaged') return '#d1d5db';
     
+    // Цвета по типу отсека
     switch (type) {
       case 'weaponry':
       case 'ammunition':
@@ -271,6 +282,7 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
       ...ship,
       compartmentData: {
         backgroundImage: backgroundImage || undefined,
+        backgroundPosition: backgroundPosition, // Сохраняем позицию фона
         compartments: compartments.map(c => ({
           ...c,
           gridX: compartmentPositions.get(c.id)?.gridX || c.gridX,
@@ -366,6 +378,8 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
                     displayY = dragPosition.y;
                   }
                 }
+                const cellX = padding + displayX * gridSize;
+                const cellY = padding + displayY * gridSize;
                 return (
                   <g key={comp.id} onMouseDown={(e) => {
                     e.stopPropagation();
@@ -378,9 +392,24 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
                       else { setSelectedCompartments(new Set([comp.id])); handleMouseDown(e, comp.id); }
                     }
                   }} className="cursor-move">
-                    <rect x={padding + displayX * gridSize} y={padding + displayY * gridSize} width={gridSize} height={gridSize}
+                    {/* Базовый прямоугольник отсека */}
+                    <rect x={cellX} y={cellY} width={gridSize} height={gridSize}
                       fill={color} opacity={compartmentOpacity} stroke={isSelected ? '#fbbf24' : isDragging ? '#06b6d4' : '#475569'}
                       strokeWidth={isSelected || isDragging ? 2 : 1} />
+                    {/* Иконка затопления - поверх отсека */}
+                    {comp.status === 'flooded' && (
+                      <g>
+                        <circle cx={cellX + gridSize / 2} cy={cellY + gridSize / 2} r={gridSize * 0.4} fill="#1e40af" opacity="0.8" />
+                        <text x={cellX + gridSize / 2} y={cellY + gridSize / 2 + 1} fill="#ffffff" fontSize={gridSize * 0.6} textAnchor="middle" dominantBaseline="middle" style={{pointerEvents: 'none'}}>💧</text>
+                      </g>
+                    )}
+                    {/* Иконка пожара - поверх отсека */}
+                    {comp.status === 'on_fire' && (
+                      <g>
+                        <circle cx={cellX + gridSize / 2} cy={cellY + gridSize / 2} r={gridSize * 0.4} fill="#991b1b" opacity="0.8" />
+                        <text x={cellX + gridSize / 2} y={cellY + gridSize / 2 + 1} fill="#ffffff" fontSize={gridSize * 0.6} textAnchor="middle" dominantBaseline="middle" style={{pointerEvents: 'none'}}>🔥</text>
+                      </g>
+                    )}
                   </g>
                 );
               })}

@@ -219,6 +219,8 @@ export default function GridCompartmentEditor({
           const displayX = isDragging ? dragPosition.x : pos.gridX;
           const displayY = isDragging ? dragPosition.y : pos.gridY;
 
+          const cellX = padding + displayX * gridSize;
+          const cellY = padding + displayY * gridSize;
           return (
             <g key={comp.id}
               onMouseDown={(e) => {
@@ -233,10 +235,22 @@ export default function GridCompartmentEditor({
                 }
               }}
               className="cursor-move">
-              <rect x={padding + displayX * gridSize} y={padding + displayY * gridSize} width={gridSize} height={gridSize}
+              <rect x={cellX} y={cellY} width={gridSize} height={gridSize}
                 fill={color} opacity={compartmentOpacity}
                 stroke={isSelected ? '#fbbf24' : isDragging ? '#06b6d4' : '#475569'}
                 strokeWidth={isSelected || isDragging ? 2 : 1} />
+              {comp.flooded > 0 && (
+                <g>
+                  <circle cx={cellX + gridSize / 2} cy={cellY + gridSize / 2} r={gridSize * 0.4} fill="#1e40af" opacity="0.8" />
+                  <text x={cellX + gridSize / 2} y={cellY + gridSize / 2 + 1} fill="#ffffff" fontSize={gridSize * 0.6} textAnchor="middle" dominantBaseline="middle" style={{pointerEvents: 'none'}}>💧</text>
+                </g>
+              )}
+              {comp.fire > 0 && (
+                <g>
+                  <circle cx={cellX + gridSize / 2} cy={cellY + gridSize / 2} r={gridSize * 0.4} fill="#991b1b" opacity="0.8" />
+                  <text x={cellX + gridSize / 2} y={cellY + gridSize / 2 + 1} fill="#ffffff" fontSize={gridSize * 0.6} textAnchor="middle" dominantBaseline="middle" style={{pointerEvents: 'none'}}>🔥</text>
+                </g>
+              )}
             </g>
           );
         })}

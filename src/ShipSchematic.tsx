@@ -68,10 +68,16 @@ export default function ShipSchematic({
                   <rect x={x} y={y} width={compartmentWidth - 1} height={deckHeight}
                     fill={color} opacity={0.7} stroke="#475569" strokeWidth="0.5" />
                   {comp.flooded > 0 && (
-                    <text x={x + compartmentWidth / 2} y={y + deckHeight / 2} fill="#60a5fa" fontSize="8" textAnchor="middle" dominantBaseline="middle">💧</text>
+                    <g>
+                      <circle cx={x + compartmentWidth / 2} cy={y + deckHeight / 2} r={deckHeight * 0.4} fill="#1e40af" opacity="0.8" />
+                      <text x={x + compartmentWidth / 2} y={y + deckHeight / 2 + 1} fill="#ffffff" fontSize={deckHeight * 0.7} textAnchor="middle" dominantBaseline="middle">💧</text>
+                    </g>
                   )}
                   {comp.fire > 0 && (
-                    <text x={x + compartmentWidth / 2 + 8} y={y + deckHeight / 2} fill="#f97316" fontSize="8" textAnchor="middle" dominantBaseline="middle">🔥</text>
+                    <g>
+                      <circle cx={x + compartmentWidth / 2} cy={y + deckHeight / 2} r={deckHeight * 0.4} fill="#991b1b" opacity="0.8" />
+                      <text x={x + compartmentWidth / 2} y={y + deckHeight / 2 + 1} fill="#ffffff" fontSize={deckHeight * 0.7} textAnchor="middle" dominantBaseline="middle">🔥</text>
+                    </g>
                   )}
                 </g>
               );
@@ -90,10 +96,16 @@ export default function ShipSchematic({
               <rect x={x} y={y} width={compartmentWidth - 1} height={deckHeight}
                 fill={color} opacity={0.7} stroke="#475569" strokeWidth="0.5" />
               {comp.flooded > 0 && (
-                <text x={x + compartmentWidth / 2} y={y + deckHeight / 2} fill="#60a5fa" fontSize="8" textAnchor="middle" dominantBaseline="middle">💧</text>
+                <g>
+                  <circle cx={x + compartmentWidth / 2} cy={y + deckHeight / 2} r={deckHeight * 0.4} fill="#1e40af" opacity="0.8" />
+                  <text x={x + compartmentWidth / 2} y={y + deckHeight / 2 + 1} fill="#ffffff" fontSize={deckHeight * 0.7} textAnchor="middle" dominantBaseline="middle">💧</text>
+                </g>
               )}
               {comp.fire > 0 && (
-                <text x={x + compartmentWidth / 2 + 8} y={y + deckHeight / 2} fill="#f97316" fontSize="8" textAnchor="middle" dominantBaseline="middle">🔥</text>
+                <g>
+                  <circle cx={x + compartmentWidth / 2} cy={y + deckHeight / 2} r={deckHeight * 0.4} fill="#991b1b" opacity="0.8" />
+                  <text x={x + compartmentWidth / 2} y={y + deckHeight / 2 + 1} fill="#ffffff" fontSize={deckHeight * 0.7} textAnchor="middle" dominantBaseline="middle">🔥</text>
+                </g>
               )}
             </g>
           );
@@ -112,10 +124,16 @@ export default function ShipSchematic({
                   <rect x={x} y={y} width={compartmentWidth - 1} height={deckHeight}
                     fill={color} opacity={0.7} stroke="#475569" strokeWidth="0.5" />
                   {comp.flooded > 0 && (
-                    <text x={x + compartmentWidth / 2} y={y + deckHeight / 2} fill="#60a5fa" fontSize="8" textAnchor="middle" dominantBaseline="middle">💧</text>
+                    <g>
+                      <circle cx={x + compartmentWidth / 2} cy={y + deckHeight / 2} r={deckHeight * 0.4} fill="#1e40af" opacity="0.8" />
+                      <text x={x + compartmentWidth / 2} y={y + deckHeight / 2 + 1} fill="#ffffff" fontSize={deckHeight * 0.7} textAnchor="middle" dominantBaseline="middle">💧</text>
+                    </g>
                   )}
                   {comp.fire > 0 && (
-                    <text x={x + compartmentWidth / 2 + 8} y={y + deckHeight / 2} fill="#f97316" fontSize="8" textAnchor="middle" dominantBaseline="middle">🔥</text>
+                    <g>
+                      <circle cx={x + compartmentWidth / 2} cy={y + deckHeight / 2} r={deckHeight * 0.4} fill="#991b1b" opacity="0.8" />
+                      <text x={x + compartmentWidth / 2} y={y + deckHeight / 2 + 1} fill="#ffffff" fontSize={deckHeight * 0.7} textAnchor="middle" dominantBaseline="middle">🔥</text>
+                    </g>
                   )}
                 </g>
               );
@@ -134,10 +152,16 @@ export default function ShipSchematic({
               <rect x={x} y={y} width={compartmentWidth - 1} height={deckHeight}
                 fill={color} opacity={0.7} stroke="#475569" strokeWidth="0.5" />
               {comp.flooded > 0 && (
-                <text x={x + compartmentWidth / 2} y={y + deckHeight / 2} fill="#60a5fa" fontSize="8" textAnchor="middle" dominantBaseline="middle">💧</text>
+                <g>
+                  <circle cx={x + compartmentWidth / 2} cy={y + deckHeight / 2} r={deckHeight * 0.4} fill="#1e40af" opacity="0.8" />
+                  <text x={x + compartmentWidth / 2} y={y + deckHeight / 2 + 1} fill="#ffffff" fontSize={deckHeight * 0.7} textAnchor="middle" dominantBaseline="middle">💧</text>
+                </g>
               )}
               {comp.fire > 0 && (
-                <text x={x + compartmentWidth / 2 + 8} y={y + deckHeight / 2} fill="#f97316" fontSize="8" textAnchor="middle" dominantBaseline="middle">🔥</text>
+                <g>
+                  <circle cx={x + compartmentWidth / 2} cy={y + deckHeight / 2} r={deckHeight * 0.4} fill="#991b1b" opacity="0.8" />
+                  <text x={x + compartmentWidth / 2} y={y + deckHeight / 2 + 1} fill="#ffffff" fontSize={deckHeight * 0.7} textAnchor="middle" dominantBaseline="middle">🔥</text>
+                </g>
               )}
             </g>
           );
@@ -174,10 +198,16 @@ export default function ShipSchematic({
               <rect x={x} y={y} width={compartmentWidth - 1} height={30}
                 fill={color} opacity={0.7} stroke="#475569" strokeWidth="0.5" />
               {comp.flooded > 0 && (
-                <text x={x + compartmentWidth / 2} y={y + 15} fill="#60a5fa" fontSize="10" textAnchor="middle" dominantBaseline="middle">💧</text>
+                <g>
+                  <circle cx={x + compartmentWidth / 2} cy={y + 15} r={12} fill="#1e40af" opacity="0.8" />
+                  <text x={x + compartmentWidth / 2} y={y + 16} fill="#ffffff" fontSize="14" textAnchor="middle" dominantBaseline="middle">💧</text>
+                </g>
               )}
               {comp.fire > 0 && (
-                <text x={x + compartmentWidth / 2 + 10} y={y + 15} fill="#f97316" fontSize="10" textAnchor="middle" dominantBaseline="middle">🔥</text>
+                <g>
+                  <circle cx={x + compartmentWidth / 2} cy={y + 15} r={12} fill="#991b1b" opacity="0.8" />
+                  <text x={x + compartmentWidth / 2} y={y + 16} fill="#ffffff" fontSize="14" textAnchor="middle" dominantBaseline="middle">🔥</text>
+                </g>
               )}
             </g>
           );
@@ -216,8 +246,12 @@ export default function ShipSchematic({
           <span className="text-slate-400">Остальные</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded" style={{backgroundColor: '#9ca3af'}}></div>
+          <div className="w-3 h-3 rounded" style={{backgroundColor: '#374151'}}></div>
           <span className="text-slate-400">Уничтожен</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 rounded" style={{backgroundColor: '#d1d5db'}}></div>
+          <span className="text-slate-400">Повреждён</span>
         </div>
         <div className="flex items-center gap-1">
           <span className="text-slate-400">💧 Затопление</span>

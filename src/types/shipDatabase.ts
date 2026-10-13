@@ -32,6 +32,7 @@ export interface ShipDatabaseEntry {
   displacementFull?: number;
   compartmentData?: {
     backgroundImage?: string;
+    backgroundPosition?: { x: number; y: number };
     compartments: Array<{
       id: string;
       gridX: number;

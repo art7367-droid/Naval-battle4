@@ -71,6 +71,10 @@ export default function ShipEditor({ compartments, onCompartmentsChange }: ShipE
   };
 
   const getStatusColor = (comp: Compartment) => {
+    // Уничтоженный отсек - тёмно-серый
+    if (comp.status === 'destroyed') return '#374151';
+    // Повреждённый отсек - светло-серый
+    if (comp.status === 'damaged') return '#d1d5db';
     return getCompartmentTypeColor(comp.type, comp.status);
   };
 

@@ -122,6 +122,18 @@ export default function CompartmentLayerEditor({
                 <rect x={x} y={y} width={compartmentWidth - 1} height={10}
                   fill={color} stroke={isSelected ? '#fbbf24' : '#475569'} strokeWidth={isSelected ? 2 : 0.5}
                   onClick={(e) => { e.stopPropagation(); setSelectedCompartment(comp.id); }} className="cursor-pointer" />
+                {comp.flooded > 0 && (
+                  <g>
+                    <circle cx={x + (compartmentWidth - 1) / 2} cy={y + 5} r={4} fill="#1e40af" opacity="0.8" />
+                    <text x={x + (compartmentWidth - 1) / 2} y={y + 6} fill="#ffffff" fontSize="6" textAnchor="middle" dominantBaseline="middle" style={{pointerEvents: 'none'}}>💧</text>
+                  </g>
+                )}
+                {comp.fire > 0 && (
+                  <g>
+                    <circle cx={x + (compartmentWidth - 1) / 2} cy={y + 5} r={4} fill="#991b1b" opacity="0.8" />
+                    <text x={x + (compartmentWidth - 1) / 2} y={y + 6} fill="#ffffff" fontSize="6" textAnchor="middle" dominantBaseline="middle" style={{pointerEvents: 'none'}}>🔥</text>
+                  </g>
+                )}
               </g>
             );
           })}

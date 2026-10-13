@@ -275,8 +275,12 @@ export function getCompartmentTypeName(type: CompartmentType): string {
 }
 
 export function getCompartmentTypeColor(type: CompartmentType, status: CompartmentStatus): string {
-  if (status === 'destroyed') return '#9ca3af'; // Светло-серый для уничтоженного
+  // Уничтоженный отсек - тёмно-серый
+  if (status === 'destroyed') return '#374151';
+  // Повреждённый отсек - светло-серый
+  if (status === 'damaged') return '#d1d5db';
   
+  // Цвета по типу отсека (для intact, flooded, on_fire)
   switch (type) {
     case 'weaponry':
     case 'ammunition':

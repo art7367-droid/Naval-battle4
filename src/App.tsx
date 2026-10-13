@@ -310,18 +310,29 @@ function App() {
   }, [phase, selectedShipForMove, reachableHexes, playerShips, turnNumber]);
 
   const handleCellClick = useCallback((q: number, r: number) => {
+    console.log(`🖱️ Клик на гекс (${q}, ${r}), фаза: ${phase}`);
+    
     if (phase === 'movement') {
       handleMoveClick(q, r);
       return;
     }
     
-    if (phase !== 'planning') return;
+    if (phase !== 'planning') {
+      console.log(`⚠️ Не в фазе planning, игнорируем клик`);
+      return;
+    }
 
     const currentShip = playerShips[currentShipIndex];
-    if (!currentShip || currentShip.currentHP <= 0) return;
+    if (!currentShip || currentShip.currentHP <= 0) {
+      console.log(`⚠️ Текущий корабль не найден или уничтожен`);
+      return;
+    }
+    
+    console.log(`🚢 Текущий корабль: ${currentShip.name} (ID: ${currentShip.id})`);
 
     const isOwnShip = playerShips.some(s => s.q === q && s.r === r && s.currentHP > 0);
     if (isOwnShip) {
+      console.log(`⚠️ Клик на свой корабль`);
       setMessage(`⚠️ Нельзя стрелять по своим кораблям!`);
       return;
     }
@@ -329,41 +340,62 @@ function App() {
     // Находим вражеский корабль на этом гексе
     const targetShip = enemyShips.find(s => s.q === q && s.r === r && s.currentHP > 0);
     if (!targetShip) {
+      console.log(`⚠️ На гексе (${q}, ${r}) нет вражеского корабля`);
       setMessage(`⚠️ На этом гексе нет вражеского корабля!`);
       return;
     }
+    
+    console.log(`🎯 Найден вражеский корабль: ${targetShip.name} (ID: ${targetShip.id})`);
 
     const distance = hexDistance(currentShip.q, currentShip.r, q, r);
+    console.log(`📏 Дистанция: ${distance}, дальность: ${currentShip.range}`);
+    
     if (distance > currentShip.range) {
+      console.log(`⚠️ Цель вне дальности!`);
       setMessage(`⚠️ Цель вне дальности! Максимальная дальность: ${currentShip.range} гексов`);
       return;
     }
 
     setSelectedTarget({ shipId: targetShip.id });
+    console.log(`✅ Цель установлена: ${targetShip.name}`);
     setMessage(`${shipIcon(currentShip.type)} ${currentShip.name} → цель: ${targetShip.name}. Подтвердить?`);
   }, [phase, playerShips, currentShipIndex, handleMoveClick]);
 
   const confirmShot = useCallback(() => {
-    if (!selectedTarget) return;
+    console.log(`🔫 confirmShot вызван, selectedTarget:`, selectedTarget);
+    
+    if (!selectedTarget) {
+      console.log(`⚠️ Нет выбранной цели`);
+      return;
+    }
 
     const currentShip = playerShips[currentShipIndex];
-    if (!currentShip) return;
+    if (!currentShip) {
+      console.log(`⚠️ Текущий корабль не найден`);
+      return;
+    }
+    
+    console.log(`🚢 Текущий корабль: ${currentShip.name} (ID: ${currentShip.id})`);
 
     // selectedTarget теперь содержит ID корабля-цели
     const targetShipId = selectedTarget.shipId;
     const targetShip = enemyShips.find(s => s.id === targetShipId);
     
     if (!targetShip) {
+      console.log(`⚠️ Цель не найдена в enemyShips`);
       setMessage('⚠️ Цель не найдена!');
       return;
     }
+    
+    console.log(`🎯 Цель: ${targetShip.name} (ID: ${targetShipId})`);
 
     const newTarget = {
       shipId: currentShip.id,
       targetShipId: targetShipId,
     };
     
-    console.log(`🎯 Игрок выбирает цель: ${currentShip.name} → ${targetShip.name} (ID: ${targetShipId})`);
+    console.log(`✅ Добавляем цель в playerShotTargets:`, newTarget);
+    console.log(`📊 Текущие цели:`, playerShotTargets);
     
     setPlayerShotTargets([...playerShotTargets, newTarget]);
 

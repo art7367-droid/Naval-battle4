@@ -362,6 +362,9 @@ function App() {
       shipId: currentShip.id,
       targetShipId: targetShipId,
     };
+    
+    console.log(`🎯 Игрок выбирает цель: ${currentShip.name} → ${targetShip.name} (ID: ${targetShipId})`);
+    
     setPlayerShotTargets([...playerShotTargets, newTarget]);
 
     const nextAlive = playerShips.findIndex((s, i) => i > currentShipIndex && s.currentHP > 0);
@@ -400,6 +403,13 @@ function App() {
     setMessage('Выстрелы выполняются...');
 
     setTimeout(() => {
+      console.log(`🔫 Выполнение выстрелов игрока: ${playerShotTargets.length} целей`);
+      playerShotTargets.forEach(t => {
+        const attacker = playerShips.find(s => s.id === t.shipId);
+        const target = enemyShips.find(s => s.id === t.targetShipId);
+        console.log(`  ${attacker?.name} → ${target?.name}`);
+      });
+      
       // Выполняем выстрелы игрока
       const playerResult = executeShots(playerShotTargets, playerShips, enemyShips);
       let updatedEnemyShips = playerResult.updatedShips;
@@ -423,6 +433,11 @@ function App() {
         }
       });
       
+      console.log(`📊 Выстрелы игрока: ${playerResult.shots.length}`);
+      playerResult.shots.forEach(s => {
+        console.log(`  ${s.shipName} → ${s.targetShipName || 'нет цели'}: ${s.hit ? 'ПОПАДАНИЕ' : 'промах'} (${s.damage} урона)`);
+      });
+      
       // Добавляем попадания и промахи в журнал
       const playerShotLogs: BattleLogEntry[] = playerResult.shots.map(s => ({
         id: `log_${Date.now()}_${Math.random()}`,
@@ -433,7 +448,7 @@ function App() {
         shipName: s.shipName,
         message: s.hit 
           ? `🎯 ${s.shipName} попал в ${s.targetShipName} (${s.damage} урона)`
-          : `💨 ${s.shipName} промахнулся по (${s.targetQ},${s.targetR})`,
+          : `💨 ${s.shipName} промахнулся по ${s.targetShipName || 'цели'}`,
         severity: s.hit ? 'info' as const : 'warning' as const
       }));
 

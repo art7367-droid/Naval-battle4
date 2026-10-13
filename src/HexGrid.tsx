@@ -74,8 +74,9 @@ export default function HexGrid({
             // Проверяем, является ли этот гекс позицией выбранного корабля-цели
             const isSelected = selectedTarget && enemyShips.some(s => s.id === selectedTarget.shipId && s.q === q && s.r === r);
             const isReachable = reachableHexes.some(h => h.q === q && h.r === r);
-            // Проверяем, является ли этот гекс целью движения
-            const isMovementTarget = Array.from(movementOrders.values()).some(dest => dest.q === q && dest.r === r);
+            // Проверяем, является ли этот гекс целью движения (только в фазах отдачи приказов)
+            const isMovementTarget = (phase === 'movement' || phase === 'planning') && 
+              Array.from(movementOrders.values()).some(dest => dest.q === q && dest.r === r);
 
             return (
               <g key={`${q}-${r}`} transform={`translate(${pos.x}, ${pos.y})`}

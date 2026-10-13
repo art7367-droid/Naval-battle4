@@ -572,6 +572,9 @@ function App() {
       setPlayerShips(updatedPlayerShips);
       setEnemyShips(updatedEnemyShips);
       
+      // Очищаем приказы на движение после их выполнения
+      setMovementOrders(new Map());
+      
       console.log(`🔫 Выполнение выстрелов игрока: ${currentTargets.length} целей`);
       console.log(`📋 Список целей:`, currentTargets);
       currentTargets.forEach(t => {

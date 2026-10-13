@@ -13,8 +13,8 @@ import {
 import { resetAI, generateAIShots, generateAIMoves, updateAIAfterShots } from './ai';
 import { processDamagePropagation } from './damagePropagation';
 import HexGrid from './HexGrid';
-import ShipDetailView from './ShipDetailView';
 import BattleLog from './components/BattleLog';
+import BattleShipDetailCard from './components/BattleShipDetailCard';
 import ShipDatabaseManager from './components/ShipDatabaseManager';
 import ShipSelectionScreen from './components/ShipSelectionScreen';
 
@@ -50,7 +50,8 @@ function App() {
   const [selectedPlayerShipsFromDB, setSelectedPlayerShipsFromDB] = useState<ShipDatabaseEntry[]>([]);
   const [selectedEnemyShipsFromDB, setSelectedEnemyShipsFromDB] = useState<ShipDatabaseEntry[]>([]);
   const [battleLog, setBattleLog] = useState<BattleLogEntry[]>([]);
-  const [showBattleLog, setShowBattleLog] = useState(false);
+  const [showBattleLog, setShowBattleLog] = useState(true); // Лог боя видим по умолчанию
+  const [hitMarkers, setHitMarkers] = useState<Array<{shipId: number; compartmentId: string; turn: number; damage: number}>>([]);
 
   const startBattle = useCallback(() => {
     const pShips = generatePlayerShips();
@@ -307,6 +308,24 @@ function App() {
       let updatedEnemyShips = playerResult.updatedShips;
       setPlayerShots(playerResult.shots);
       
+      // Сохраняем информацию о попаданиях игрока по вражеским кораблям
+      const playerHitMarkers: Array<{shipId: number; compartmentId: string; turn: number; damage: number}> = [];
+      playerResult.shots.filter(s => s.hit && s.targetShipId).forEach(shot => {
+        const targetShip = updatedEnemyShips.find(s => s.id === shot.targetShipId);
+        if (targetShip) {
+          // Находим повреждённый отсек (последний повреждённый)
+          const damagedCompartment = targetShip.compartments.find(c => c.status !== 'intact' && c.currentHP < c.maxHP);
+          if (damagedCompartment) {
+            playerHitMarkers.push({
+              shipId: shot.targetShipId!,
+              compartmentId: damagedCompartment.id,
+              turn: turnNumber,
+              damage: shot.damage
+            });
+          }
+        }
+      });
+      
       // Добавляем попадания в журнал
       const hitLogs: BattleLogEntry[] = playerResult.shots
         .filter(s => s.hit)
@@ -326,6 +345,27 @@ function App() {
       const enemyResult = executeShots(enemyShotTargets, enemyShips, playerShips);
       let updatedPlayerShips = enemyResult.updatedShips;
       setEnemyShots(enemyResult.shots);
+      
+      // Сохраняем информацию о попаданиях врага по нашим кораблям
+      const enemyHitMarkers: Array<{shipId: number; compartmentId: string; turn: number; damage: number}> = [];
+      enemyResult.shots.filter(s => s.hit && s.targetShipId).forEach(shot => {
+        const targetShip = updatedPlayerShips.find(s => s.id === shot.targetShipId);
+        if (targetShip) {
+          // Находим повреждённый отсек (последний повреждённый)
+          const damagedCompartment = targetShip.compartments.find(c => c.status !== 'intact' && c.currentHP < c.maxHP);
+          if (damagedCompartment) {
+            enemyHitMarkers.push({
+              shipId: shot.targetShipId!,
+              compartmentId: damagedCompartment.id,
+              turn: turnNumber,
+              damage: shot.damage
+            });
+          }
+        }
+      });
+      
+      // Обновляем маркеры попаданий
+      setHitMarkers(prev => [...prev, ...playerHitMarkers, ...enemyHitMarkers]);
       
       // Добавляем попадания врага в журнал
       const enemyHitLogs: BattleLogEntry[] = enemyResult.shots
@@ -409,6 +449,7 @@ function App() {
     setEnemyShots([]);
     setSelectedShipForMove(null);
     setReachableHexes([]);
+    setHitMarkers([]); // Сбрасываем маркеры попаданий между ходами
     
     setPlayerShips(prev => prev.map(s => ({ ...s, hasMoved: false, hasFired: false })));
     setEnemyShips(prev => prev.map(s => ({ ...s, hasMoved: false, hasFired: false })));
@@ -545,8 +586,8 @@ function App() {
 
   // Экран боя
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white p-4">
-      <div className="max-w-[1400px] mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
+      <div className="w-full px-2">
         <div className="text-center mb-4">
           <div className="flex justify-between items-center mb-2">
             <button
@@ -672,28 +713,30 @@ function App() {
         )}
 
         {phase !== 'placement' && (
-          <div className="flex flex-col lg:flex-row justify-center gap-4 items-start">
-            <div className="flex flex-col gap-4">
-              <ShipDetailView ship={selectedShipForDetail} />
+          <div className="flex flex-col lg:flex-row justify-start gap-4 items-start">
+            <div className="flex flex-col gap-4 flex-shrink-0">
+              <BattleShipDetailCard ship={selectedShipForDetail} hitMarkers={hitMarkers} />
               {showBattleLog && <BattleLog entries={battleLog} title="Журнал боя" />}
             </div>
-            <HexGrid
-              playerShips={playerShips}
-              enemyShips={enemyShips}
-              phase={phase}
-              selectedTarget={selectedTarget}
-              shotTargets={playerShotTargets}
-              shots={playerShots}
-              enemyShots={enemyShots}
-              selectedShipForMove={selectedShipForMove}
-              reachableHexes={reachableHexes}
-              attackingShip={playerShips[currentShipIndex]}
-              playerTrajectories={playerTrajectories}
-              enemyTrajectories={enemyTrajectories}
-              isAnimating={isAnimating}
-              onCellClick={handleCellClick}
-              onShipClick={handleShipClickForDetail}
-            />
+            <div className="flex-1 overflow-hidden">
+              <HexGrid
+                playerShips={playerShips}
+                enemyShips={enemyShips}
+                phase={phase}
+                selectedTarget={selectedTarget}
+                shotTargets={playerShotTargets}
+                shots={playerShots}
+                enemyShots={enemyShots}
+                selectedShipForMove={selectedShipForMove}
+                reachableHexes={reachableHexes}
+                attackingShip={playerShips[currentShipIndex]}
+                playerTrajectories={playerTrajectories}
+                enemyTrajectories={enemyTrajectories}
+                isAnimating={isAnimating}
+                onCellClick={handleCellClick}
+                onShipClick={handleShipClickForDetail}
+              />
+            </div>
           </div>
         )}
 

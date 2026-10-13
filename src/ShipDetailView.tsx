@@ -11,9 +11,10 @@ type ViewMode = 'schematic' | 'upload' | 'preset' | 'editor' | 'layerEditor' | '
 
 interface ShipDetailViewProps {
   ship: Ship | null;
+  hitMarkers?: Array<{shipId: number; compartmentId: string; turn: number; damage: number}>;
 }
 
-export default function ShipDetailView({ ship }: ShipDetailViewProps) {
+export default function ShipDetailView({ ship, hitMarkers = [] }: ShipDetailViewProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('schematic');
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
@@ -31,7 +32,7 @@ export default function ShipDetailView({ ship }: ShipDetailViewProps) {
 
   const renderView = () => {
     switch (viewMode) {
-      case 'schematic': return <ShipSchematic ship={ship} backgroundImage={backgroundImage} />;
+      case 'schematic': return <ShipSchematic ship={ship} backgroundImage={backgroundImage} hitMarkers={hitMarkers} />;
       case 'upload': return <ImageUploader onImageLoad={setUploadedImage} currentImage={uploadedImage} />;
       case 'preset': return <PresetImage ship={ship} />;
       case 'editor': return <ShipEditor compartments={ship.compartments} onCompartmentsChange={() => {}} />;
@@ -42,11 +43,15 @@ export default function ShipDetailView({ ship }: ShipDetailViewProps) {
   };
 
   const allEffects: { name: string; effect: string; severity: 'damaged' | 'destroyed' }[] = [];
+  const shipHitMarkers = hitMarkers.filter(m => m.shipId === ship.id);
+  const totalDamage = shipHitMarkers.reduce((sum, m) => sum + m.damage, 0);
+  
   ship.compartments.forEach(comp => {
+    const compHits = shipHitMarkers.filter(m => m.compartmentId === comp.id);
     if (comp.status === 'destroyed') {
-      allEffects.push({ name: comp.name, effect: 'Отсек уничтожен', severity: 'destroyed' });
+      allEffects.push({ name: comp.name, effect: `Отсек уничтожен${compHits.length > 0 ? ` (${compHits.length} попаданий)` : ''}`, severity: 'destroyed' });
     } else if (comp.status === 'damaged') {
-      allEffects.push({ name: comp.name, effect: 'Отсек повреждён', severity: 'damaged' });
+      allEffects.push({ name: comp.name, effect: `Отсек повреждён${compHits.length > 0 ? ` (${compHits.length} попаданий)` : ''}`, severity: 'damaged' });
     }
     if (comp.fire > 0) {
       allEffects.push({ name: `${comp.name} (пожар)`, effect: `Интенсивность: ${Math.round(comp.fire * 100)}%`, severity: 'damaged' });
@@ -90,6 +95,15 @@ export default function ShipDetailView({ ship }: ShipDetailViewProps) {
           <div className="flex justify-between"><span className="text-slate-400">ПВО:</span><span className={ship.stats.aaFire < 0.7 ? 'text-orange-400' : 'text-green-400'}>{Math.round(ship.stats.aaFire * 100)}%</span></div>
           <div className="flex justify-between"><span className="text-slate-400">Плавуч.:</span><span className={ship.stats.buoyancy < 0.7 ? 'text-red-400' : 'text-green-400'}>{Math.round(ship.stats.buoyancy * 100)}%</span></div>
         </div>
+        {shipHitMarkers.length > 0 && (
+          <div className="mt-2 pt-2 border-t border-slate-700">
+            <div className="text-[10px] font-bold text-red-400 mb-1">🎯 ПОПАДАНИЯ:</div>
+            <div className="grid grid-cols-2 gap-1 text-[9px]">
+              <div className="flex justify-between"><span className="text-slate-400">Всего попаданий:</span><span className="text-red-400">{shipHitMarkers.length}</span></div>
+              <div className="flex justify-between"><span className="text-slate-400">Общий урон:</span><span className="text-red-400">{totalDamage}</span></div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="border-t border-slate-700 pt-2 flex-shrink-0">

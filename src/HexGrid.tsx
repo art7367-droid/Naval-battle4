@@ -74,12 +74,14 @@ export default function HexGrid({
             // Проверяем, является ли этот гекс позицией выбранного корабля-цели
             const isSelected = selectedTarget && enemyShips.some(s => s.id === selectedTarget.shipId && s.q === q && s.r === r);
             const isReachable = reachableHexes.some(h => h.q === q && h.r === r);
+            // Проверяем, является ли этот гекс целью движения
+            const isMovementTarget = Array.from(movementOrders.values()).some(dest => dest.q === q && dest.r === r);
 
             return (
               <g key={`${q}-${r}`} transform={`translate(${pos.x}, ${pos.y})`}
                 onClick={() => clickable && onCellClick(q, r)} className={clickable ? 'cursor-crosshair' : ''}>
                 <polygon points={getHexPoints(HEX_SIZE - 1)}
-                  className={`fill-slate-700/40 stroke-slate-500/60 stroke-[1px] transition-all duration-200 ${clickable ? 'hover:fill-cyan-500/40 hover:stroke-cyan-300' : ''} ${isReachable ? 'fill-green-500/30 stroke-green-400' : ''}`} />
+                  className={`fill-slate-700/40 stroke-slate-500/60 stroke-[1px] transition-all duration-200 ${clickable ? 'hover:fill-cyan-500/40 hover:stroke-cyan-300' : ''} ${isReachable ? 'fill-green-500/30 stroke-green-400' : ''} ${isMovementTarget ? 'fill-amber-500/40 stroke-amber-400' : ''}`} />
                 {isSelected && (
                   <circle cx={0} cy={0} r={HEX_SIZE * 0.6} fill="none" stroke="#fbbf24" strokeWidth="2" strokeDasharray="3,3" />
                 )}
@@ -128,8 +130,8 @@ export default function HexGrid({
           );
         })}
 
-        {/* Визуализация приказов на движение */}
-        {phase === 'movement' && Array.from(movementOrders.entries()).map(([shipId, dest]) => {
+        {/* Визуализация приказов на движение (отображается в фазах movement и planning) */}
+        {(phase === 'movement' || phase === 'planning') && Array.from(movementOrders.entries()).map(([shipId, dest]) => {
           const ship = playerShips.find(s => s.id === shipId);
           if (!ship) return null;
           const fromPos = getHexPosition(ship.q, ship.r, HEX_SIZE);

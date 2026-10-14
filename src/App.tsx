@@ -59,8 +59,17 @@ function App() {
   const [showBattleLog, setShowBattleLog] = useState(true); // Лог боя видим по умолчанию
   const [hitMarkers, setHitMarkers] = useState<Array<{shipId: number; compartmentId: string; turn: number; damage: number}>>([]);
   const [strategicMapData, setStrategicMapData] = useState<StrategicMapData | undefined>(() => {
-    const saved = localStorage.getItem('strategicMapData');
-    return saved ? JSON.parse(saved) : undefined;
+    try {
+      const saved = localStorage.getItem('strategicMapData');
+      if (saved) {
+        const data = JSON.parse(saved);
+        console.log(`✅ Загружено из localStorage: ${data.tiles?.length || 0} тайлов`);
+        return data;
+      }
+    } catch (error) {
+      console.error('❌ Ошибка загрузки из localStorage:', error);
+    }
+    return undefined;
   });
   
   // useRef для хранения актуального значения playerShotTargets

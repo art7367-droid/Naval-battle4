@@ -60,6 +60,7 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
   const tileHeight = mapHeight / rows;
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
   const [currentTileIndex, setCurrentTileIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOverTile, setDragOverTile] = useState<number | null>(null);
@@ -83,13 +84,43 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
             
             setMapTiles(prev => {
               const existing = prev.findIndex(t => t.id === tileId);
+              let updated;
               if (existing >= 0) {
-                const updated = [...prev];
+                updated = [...prev];
                 updated[existing] = { id: tileId, imageData, row, col };
-                return updated;
               } else {
-                return [...prev, { id: tileId, imageData, row, col }];
+                updated = [...prev, { id: tileId, imageData, row, col }];
               }
+              
+              // Автоматическое сохранение в localStorage
+              const tilesWithSizes = updated.map(tile => {
+                const size = getTileSize(tile.id);
+                return {
+                  ...tile,
+                  width: size.width,
+                  height: size.height
+                };
+              });
+              
+              const dataToSave: StrategicMapData = {
+                tiles: tilesWithSizes,
+                mapWidth,
+                mapHeight,
+                tileWidth,
+                tileHeight
+              };
+              
+              try {
+                localStorage.setItem('strategicMapData', JSON.stringify(dataToSave));
+                console.log(`✅ Тайл ${String(tileId).padStart(2, '0')} сохранён в localStorage`);
+              } catch (error) {
+                console.error('❌ Ошибка сохранения в localStorage:', error);
+                if (error instanceof Error && error.name === 'QuotaExceededError') {
+                  alert('Ошибка: Превышен лимит localStorage. Попробуйте очистить старые данные.');
+                }
+              }
+              
+              return updated;
             });
           }
         }
@@ -114,13 +145,43 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
         
         setMapTiles(prev => {
           const existing = prev.findIndex(t => t.id === tileId);
+          let updated;
           if (existing >= 0) {
-            const updated = [...prev];
+            updated = [...prev];
             updated[existing] = { id: tileId, imageData, row, col };
-            return updated;
           } else {
-            return [...prev, { id: tileId, imageData, row, col }];
+            updated = [...prev, { id: tileId, imageData, row, col }];
           }
+          
+          // Автоматическое сохранение в localStorage
+          const tilesWithSizes = updated.map(tile => {
+            const size = getTileSize(tile.id);
+            return {
+              ...tile,
+              width: size.width,
+              height: size.height
+            };
+          });
+          
+          const dataToSave: StrategicMapData = {
+            tiles: tilesWithSizes,
+            mapWidth,
+            mapHeight,
+            tileWidth,
+            tileHeight
+          };
+          
+          try {
+            localStorage.setItem('strategicMapData', JSON.stringify(dataToSave));
+            console.log(`✅ Тайл ${String(tileId).padStart(2, '0')} сохранён в localStorage`);
+          } catch (error) {
+            console.error('❌ Ошибка сохранения в localStorage:', error);
+            if (error instanceof Error && error.name === 'QuotaExceededError') {
+              alert('Ошибка: Превышен лимит localStorage. Попробуйте очистить старые данные.');
+            }
+          }
+          
+          return updated;
         });
       };
       reader.readAsDataURL(file);
@@ -148,19 +209,96 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
       };
     });
     
-    onUpdate({
+    const dataToSave: StrategicMapData = {
       tiles: tilesWithSizes,
       mapWidth,
       mapHeight,
       tileWidth,
       tileHeight
-    });
+    };
+    
+    try {
+      const jsonData = JSON.stringify(dataToSave);
+      const sizeInMB = (new Blob([jsonData]).size / 1024 / 1024).toFixed(2);
+      console.log(`💾 Размер данных: ${sizeInMB} МБ`);
+      
+      localStorage.setItem('strategicMapData', jsonData);
+      console.log(`✅ Данные сохранены в localStorage`);
+      
+      onUpdate(dataToSave);
+      alert(`✅ Карта сохранена!\nРазмер: ${sizeInMB} МБ\nТайлов: ${tilesWithSizes.length}`);
+    } catch (error) {
+      console.error('❌ Ошибка сохранения:', error);
+      if (error instanceof Error && error.name === 'QuotaExceededError') {
+        alert('❌ Ошибка: Превышен лимит localStorage (обычно 5-10 МБ).\n\nПопробуйте:\n1. Удалить некоторые тайлы\n2. Использовать изображения меньшего размера\n3. Очистить данные браузера');
+      } else {
+        alert('❌ Ошибка сохранения данных');
+      }
+    }
   };
 
   const handleClear = () => {
     if (confirm('Очистить все изображения карты?')) {
       setMapTiles([]);
+      localStorage.removeItem('strategicMapData');
+      console.log('✅ Данные очищены');
     }
+  };
+
+  const handleExport = () => {
+    const tilesWithSizes = mapTiles.map(tile => {
+      const size = getTileSize(tile.id);
+      return {
+        ...tile,
+        width: size.width,
+        height: size.height
+      };
+    });
+    
+    const dataToExport: StrategicMapData = {
+      tiles: tilesWithSizes,
+      mapWidth,
+      mapHeight,
+      tileWidth,
+      tileHeight
+    };
+    
+    const jsonData = JSON.stringify(dataToExport, null, 2);
+    const blob = new Blob([jsonData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'strategic-map-data.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    console.log('✅ Данные экспортированы в файл');
+  };
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target?.result as string) as StrategicMapData;
+        if (data.tiles && Array.isArray(data.tiles)) {
+          setMapTiles(data.tiles);
+          localStorage.setItem('strategicMapData', JSON.stringify(data));
+          console.log(`✅ Импортировано ${data.tiles.length} тайлов`);
+          alert(`✅ Импортировано ${data.tiles.length} тайлов`);
+        } else {
+          alert('❌ Неверный формат файла');
+        }
+      } catch (error) {
+        console.error('❌ Ошибка импорта:', error);
+        alert('❌ Ошибка чтения файла');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = ''; // Сброс input для повторного импорта того же файла
   };
 
   return (
@@ -181,6 +319,19 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
             💾 Сохранить
           </button>
           <button
+            onClick={handleExport}
+            disabled={mapTiles.length === 0}
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-600 disabled:cursor-not-allowed rounded text-sm"
+          >
+            📤 Экспорт
+          </button>
+          <button
+            onClick={() => importInputRef.current?.click()}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded text-sm"
+          >
+            📥 Импорт
+          </button>
+          <button
             onClick={handleClear}
             className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-sm"
           >
@@ -197,6 +348,14 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
         onChange={handleFileSelect}
         className="hidden"
       />
+      
+      <input
+        ref={importInputRef}
+        type="file"
+        accept="application/json"
+        onChange={handleImport}
+        className="hidden"
+      />
 
       <div className="mb-4 text-sm text-slate-400">
         <p>Размер карты: {mapWidth} × {mapHeight} пикселей</p>
@@ -204,7 +363,14 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
         <p>Последний столбец (06, 13, 20, 27, 34): {lastColumnWidth} × {standardTileHeight} пикселей</p>
         <p>Последний ряд (35-40): {standardTileWidth} × {lastRowHeight} пикселей</p>
         <p>Тайл 41: {lastColumnWidth} × {lastRowHeight} пикселей</p>
-        <p className="mt-2">Загружено: {mapTiles.length} из 42 изображений</p>
+        <p className="mt-2">
+          Загружено: <span className="text-cyan-400 font-bold">{mapTiles.length}</span> из 42 изображений
+        </p>
+        {mapTiles.length > 0 && (
+          <p className="mt-1 text-xs text-green-400">
+            💾 Данные автоматически сохраняются в localStorage при каждом изменении
+          </p>
+        )}
         <p className="mt-2 text-xs">
           💡 Перетащите файлы на нужные ячейки или используйте кнопку загрузки. 
           Файлы должны содержать номер от 00 до 41 в имени.

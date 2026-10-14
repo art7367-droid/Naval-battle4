@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { StrategicMapData } from '../types/shipDatabase';
+import { saveToIndexedDB, deleteFromIndexedDB } from '../utils/indexedDB';
 
 interface StrategicMapEditorProps {
   strategicMapData?: StrategicMapData;
@@ -71,7 +72,7 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
 
     Array.from(files).forEach(file => {
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         const imageData = event.target?.result as string;
         
         // Извлекаем номер из имени файла (00-41)
@@ -92,7 +93,7 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
                 updated = [...prev, { id: tileId, imageData, row, col }];
               }
               
-              // Автоматическое сохранение в localStorage
+              // Автоматическое сохранение в IndexedDB
               const tilesWithSizes = updated.map(tile => {
                 const size = getTileSize(tile.id);
                 return {
@@ -110,15 +111,14 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
                 tileHeight
               };
               
-              try {
-                localStorage.setItem('strategicMapData', JSON.stringify(dataToSave));
-                console.log(`✅ Тайл ${String(tileId).padStart(2, '0')} сохранён в localStorage`);
-              } catch (error) {
-                console.error('❌ Ошибка сохранения в localStorage:', error);
-                if (error instanceof Error && error.name === 'QuotaExceededError') {
-                  alert('Ошибка: Превышен лимит localStorage. Попробуйте очистить старые данные.');
-                }
-              }
+              saveToIndexedDB(dataToSave)
+                .then(() => {
+                  console.log(`✅ Тайл ${String(tileId).padStart(2, '0')} сохранён в IndexedDB`);
+                })
+                .catch((error) => {
+                  console.error('❌ Ошибка сохранения в IndexedDB:', error);
+                  alert('Ошибка сохранения данных. Проверьте консоль для деталей.');
+                });
               
               return updated;
             });
@@ -153,7 +153,7 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
             updated = [...prev, { id: tileId, imageData, row, col }];
           }
           
-          // Автоматическое сохранение в localStorage
+          // Автоматическое сохранение в IndexedDB
           const tilesWithSizes = updated.map(tile => {
             const size = getTileSize(tile.id);
             return {
@@ -171,15 +171,14 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
             tileHeight
           };
           
-          try {
-            localStorage.setItem('strategicMapData', JSON.stringify(dataToSave));
-            console.log(`✅ Тайл ${String(tileId).padStart(2, '0')} сохранён в localStorage`);
-          } catch (error) {
-            console.error('❌ Ошибка сохранения в localStorage:', error);
-            if (error instanceof Error && error.name === 'QuotaExceededError') {
-              alert('Ошибка: Превышен лимит localStorage. Попробуйте очистить старые данные.');
-            }
-          }
+          saveToIndexedDB(dataToSave)
+            .then(() => {
+              console.log(`✅ Тайл ${String(tileId).padStart(2, '0')} сохранён в IndexedDB`);
+            })
+            .catch((error) => {
+              console.error('❌ Ошибка сохранения в IndexedDB:', error);
+              alert('Ошибка сохранения данных. Проверьте консоль для деталей.');
+            });
           
           return updated;
         });
@@ -199,7 +198,7 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
     setDragOverTile(null);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const tilesWithSizes = mapTiles.map(tile => {
       const size = getTileSize(tile.id);
       return {
@@ -218,30 +217,27 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
     };
     
     try {
-      const jsonData = JSON.stringify(dataToSave);
-      const sizeInMB = (new Blob([jsonData]).size / 1024 / 1024).toFixed(2);
-      console.log(`💾 Размер данных: ${sizeInMB} МБ`);
-      
-      localStorage.setItem('strategicMapData', jsonData);
-      console.log(`✅ Данные сохранены в localStorage`);
+      await saveToIndexedDB(dataToSave);
+      console.log(`✅ Данные сохранены в IndexedDB`);
       
       onUpdate(dataToSave);
-      alert(`✅ Карта сохранена!\nРазмер: ${sizeInMB} МБ\nТайлов: ${tilesWithSizes.length}`);
+      alert(`✅ Карта сохранена в IndexedDB!\nТайлов: ${tilesWithSizes.length}\n\nIndexedDB поддерживает большие объёмы данных (до нескольких ГБ).`);
     } catch (error) {
       console.error('❌ Ошибка сохранения:', error);
-      if (error instanceof Error && error.name === 'QuotaExceededError') {
-        alert('❌ Ошибка: Превышен лимит localStorage (обычно 5-10 МБ).\n\nПопробуйте:\n1. Удалить некоторые тайлы\n2. Использовать изображения меньшего размера\n3. Очистить данные браузера');
-      } else {
-        alert('❌ Ошибка сохранения данных');
-      }
+      alert('❌ Ошибка сохранения данных. Проверьте консоль для деталей.');
     }
   };
 
-  const handleClear = () => {
+  const handleClear = async () => {
     if (confirm('Очистить все изображения карты?')) {
-      setMapTiles([]);
-      localStorage.removeItem('strategicMapData');
-      console.log('✅ Данные очищены');
+      try {
+        await deleteFromIndexedDB();
+        setMapTiles([]);
+        console.log('✅ Данные очищены из IndexedDB');
+      } catch (error) {
+        console.error('❌ Ошибка очистки:', error);
+        alert('Ошибка очистки данных');
+      }
     }
   };
 
@@ -281,13 +277,13 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
     if (!file) return;
     
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const data = JSON.parse(event.target?.result as string) as StrategicMapData;
         if (data.tiles && Array.isArray(data.tiles)) {
           setMapTiles(data.tiles);
-          localStorage.setItem('strategicMapData', JSON.stringify(data));
-          console.log(`✅ Импортировано ${data.tiles.length} тайлов`);
+          await saveToIndexedDB(data);
+          console.log(`✅ Импортировано ${data.tiles.length} тайлов в IndexedDB`);
           alert(`✅ Импортировано ${data.tiles.length} тайлов`);
         } else {
           alert('❌ Неверный формат файла');

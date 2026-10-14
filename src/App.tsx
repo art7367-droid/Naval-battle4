@@ -19,6 +19,7 @@ import ShipDatabaseManager from './components/ShipDatabaseManager';
 import ShipSelectionScreen from './components/ShipSelectionScreen';
 import StrategicMap from './components/StrategicMap';
 import StrategicMapEditor from './components/StrategicMapEditor';
+import { saveToIndexedDB, loadFromIndexedDB, migrateFromLocalStorage } from './utils/indexedDB';
 
 function shipIcon(type: string): string {
   switch (type) {
@@ -59,16 +60,24 @@ function App() {
   const [showBattleLog, setShowBattleLog] = useState(true); // Лог боя видим по умолчанию
   const [hitMarkers, setHitMarkers] = useState<Array<{shipId: number; compartmentId: string; turn: number; damage: number}>>([]);
   const [strategicMapData, setStrategicMapData] = useState<StrategicMapData | undefined>(() => {
-    try {
-      const saved = localStorage.getItem('strategicMapData');
-      if (saved) {
-        const data = JSON.parse(saved);
-        console.log(`✅ Загружено из localStorage: ${data.tiles?.length || 0} тайлов`);
-        return data;
+    // Асинхронная загрузка из IndexedDB при старте
+    loadFromIndexedDB().then(data => {
+      if (data) {
+        setStrategicMapData(data);
+      } else {
+        // Если нет в IndexedDB, пробуем мигрировать из localStorage
+        migrateFromLocalStorage().then(migrated => {
+          if (migrated) {
+            loadFromIndexedDB().then(migratedData => {
+              if (migratedData) {
+                setStrategicMapData(migratedData);
+              }
+            });
+          }
+        });
       }
-    } catch (error) {
-      console.error('❌ Ошибка загрузки из localStorage:', error);
-    }
+    });
+    
     return undefined;
   });
   
@@ -953,9 +962,14 @@ function App() {
           </div>
           <StrategicMapEditor
             strategicMapData={strategicMapData}
-            onUpdate={(data) => {
+            onUpdate={async (data) => {
               setStrategicMapData(data);
-              localStorage.setItem('strategicMapData', JSON.stringify(data));
+              try {
+                await saveToIndexedDB(data);
+                console.log('✅ Данные карты сохранены в IndexedDB');
+              } catch (error) {
+                console.error('❌ Ошибка сохранения в IndexedDB:', error);
+              }
             }}
           />
         </div>

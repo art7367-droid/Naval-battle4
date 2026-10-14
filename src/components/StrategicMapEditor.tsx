@@ -311,37 +311,94 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
     
     const reader = new FileReader();
     reader.onload = async (event) => {
-      const imageData = event.target?.result as string;
-      setHexSample(imageData);
+      const originalImageData = event.target?.result as string;
       
-      // Сохраняем с образцом
-      const tilesWithSizes = mapTiles.map(tile => {
-        const size = getTileSize(tile.id);
-        return {
-          ...tile,
-          width: size.width,
-          height: size.height
+      // Обрабатываем изображение: удаляем белый фон
+      const img = new Image();
+      img.onload = async () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        
+        if (!ctx) {
+          console.error('❌ Не удалось получить контекст canvas');
+          return;
+        }
+        
+        // Рисуем оригинальное изображение
+        ctx.drawImage(img, 0, 0);
+        
+        // Получаем данные пикселей
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        // Проходим по всем пикселям и делаем белые прозрачными
+        // Белый цвет: R=255, G=255, B=255
+        // Порог для определения "белого" (можно настроить)
+        const whiteThreshold = 240;
+        
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          
+          // Если пиксель близок к белому, делаем его прозрачным
+          if (r > whiteThreshold && g > whiteThreshold && b > whiteThreshold) {
+            data[i + 3] = 0; // Alpha = 0 (полностью прозрачный)
+          }
+        }
+        
+        // Возвращаем обработанные данные обратно в canvas
+        ctx.putImageData(imageData, 0, 0);
+        
+        // Получаем обработанное изображение как data URL
+        const processedImageData = canvas.toDataURL('image/png');
+        
+        setHexSample(processedImageData);
+        
+        // Сохраняем с образцом
+        const tilesWithSizes = mapTiles.map(tile => {
+          const size = getTileSize(tile.id);
+          return {
+            ...tile,
+            width: size.width,
+            height: size.height
+          };
+        });
+        
+        const dataToSave: StrategicMapData = {
+          tiles: tilesWithSizes,
+          mapWidth,
+          mapHeight,
+          tileWidth,
+          tileHeight,
+          hexSample: processedImageData
         };
-      });
-      
-      const dataToSave: StrategicMapData = {
-        tiles: tilesWithSizes,
-        mapWidth,
-        mapHeight,
-        tileWidth,
-        tileHeight,
-        hexSample: imageData
+        
+        try {
+          await saveToIndexedDB(dataToSave);
+          console.log('✅ Образец гекса обработан и сохранён в IndexedDB (белый фон удалён)');
+          alert('✅ Образец гекса загружен!\nБелый фон автоматически удалён.');
+        } catch (error) {
+          console.error('❌ Ошибка сохранения образца:', error);
+          alert('❌ Ошибка сохранения образца');
+        }
       };
       
-      try {
-        await saveToIndexedDB(dataToSave);
-        console.log('✅ Образец гекса сохранён в IndexedDB');
-        alert('✅ Образец гекса загружен и сохранён!');
-      } catch (error) {
-        console.error('❌ Ошибка сохранения образца:', error);
-        alert('❌ Ошибка сохранения образца');
-      }
+      img.onerror = () => {
+        console.error('❌ Ошибка загрузки изображения');
+        alert('❌ Ошибка загрузки изображения');
+      };
+      
+      img.src = originalImageData;
     };
+    
+    reader.onerror = () => {
+      console.error('❌ Ошибка чтения файла');
+      alert('❌ Ошибка чтения файла');
+    };
+    
     reader.readAsDataURL(file);
     e.target.value = ''; // Сброс input
   };

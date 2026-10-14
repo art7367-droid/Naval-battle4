@@ -95,8 +95,50 @@ export default function StrategicMap({ onBack, strategicMapData }: StrategicMapP
     if (strategicMapData?.hexSample) {
       const img = new Image();
       img.onload = () => {
-        hexSampleImage.current = img;
-        console.log('✅ Образец гекса загружен');
+        // Проверяем, нужно ли обработать изображение (удалить белый фон)
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        
+        if (!ctx) {
+          hexSampleImage.current = img;
+          return;
+        }
+        
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        // Проверяем, есть ли белые пиксели
+        let hasWhitePixels = false;
+        const whiteThreshold = 240;
+        
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          
+          if (r > whiteThreshold && g > whiteThreshold && b > whiteThreshold) {
+            hasWhitePixels = true;
+            data[i + 3] = 0; // Делаем прозрачным
+          }
+        }
+        
+        if (hasWhitePixels) {
+          // Возвращаем обработанное изображение
+          ctx.putImageData(imageData, 0, 0);
+          const processedImg = new Image();
+          processedImg.onload = () => {
+            hexSampleImage.current = processedImg;
+            console.log('✅ Образец гекса загружен и обработан (белый фон удалён)');
+          };
+          processedImg.src = canvas.toDataURL('image/png');
+        } else {
+          // Изображение уже прозрачное
+          hexSampleImage.current = img;
+          console.log('✅ Образец гекса загружен');
+        }
       };
       img.src = strategicMapData.hexSample;
     } else {

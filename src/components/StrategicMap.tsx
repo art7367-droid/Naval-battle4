@@ -113,28 +113,63 @@ export default function StrategicMap({ onBack, strategicMapData }: StrategicMapP
     // Отрисовка тайлов (только видимых)
     if (strategicMapData?.tiles) {
       const cols = 7;
-      const rows = 6;
-      const tileWidth = MAP_WIDTH / cols;
-      const tileHeight = MAP_HEIGHT / rows;
+      
+      // Размеры тайлов
+      const standardTileWidth = 1500;
+      const standardTileHeight = 1500;
+      const lastColumnWidth = 703;
+      const lastRowHeight = 267;
+      
+      // Функция для определения размера тайла по его ID
+      const getTileSize = (tileId: number, tileData?: any) => {
+        const row = Math.floor(tileId / cols);
+        const col = tileId % cols;
+        
+        const isLastColumn = col === 6;
+        const isLastRow = row === 5;
+        
+        return {
+          width: tileData?.width || (isLastColumn ? lastColumnWidth : standardTileWidth),
+          height: tileData?.height || (isLastRow ? lastRowHeight : standardTileHeight)
+        };
+      };
+      
+      // Функция для определения позиции тайла
+      const getTilePosition = (tileId: number) => {
+        const row = Math.floor(tileId / cols);
+        const col = tileId % cols;
+        
+        let x = 0;
+        for (let c = 0; c < col; c++) {
+          x += (c === 6 ? lastColumnWidth : standardTileWidth);
+        }
+        
+        let y = 0;
+        for (let r = 0; r < row; r++) {
+          y += (r === 5 ? lastRowHeight : standardTileHeight);
+        }
+        
+        return { x, y };
+      };
       
       strategicMapData.tiles.forEach(tile => {
-        const tileX = tile.col * tileWidth;
-        const tileY = tile.row * tileHeight;
-        const tileRight = tileX + tileWidth;
-        const tileBottom = tileY + tileHeight;
+        const tileSize = getTileSize(tile.id, tile);
+        const tilePos = getTilePosition(tile.id);
+        const tileRight = tilePos.x + tileSize.width;
+        const tileBottom = tilePos.y + tileSize.height;
         
         // Проверка видимости тайла
-        if (tileRight < visibleX || tileX > visibleX + visibleWidth ||
-            tileBottom < visibleY || tileY > visibleY + visibleHeight) {
+        if (tileRight < visibleX || tilePos.x > visibleX + visibleWidth ||
+            tileBottom < visibleY || tilePos.y > visibleY + visibleHeight) {
           return; // Тайл не виден
         }
         
         const img = imageCache.current.get(tile.imageData);
         if (img && img.complete && img.naturalWidth > 0) {
-          const screenX = (tileX - visibleX) * viewport.zoom;
-          const screenY = (tileY - visibleY) * viewport.zoom;
-          const screenWidth = tileWidth * viewport.zoom;
-          const screenHeight = tileHeight * viewport.zoom;
+          const screenX = (tilePos.x - visibleX) * viewport.zoom;
+          const screenY = (tilePos.y - visibleY) * viewport.zoom;
+          const screenWidth = tileSize.width * viewport.zoom;
+          const screenHeight = tileSize.height * viewport.zoom;
           
           ctx.drawImage(img, screenX, screenY, screenWidth, screenHeight);
         }

@@ -15,6 +15,47 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
   const mapHeight = strategicMapData?.mapHeight || 7767;
   const cols = 7;
   const rows = 6;
+  
+  // Размеры тайлов
+  const standardTileWidth = 1500;
+  const standardTileHeight = 1500;
+  const lastColumnWidth = 703; // Для тайлов 06, 13, 20, 27, 34
+  const lastRowHeight = 267; // Для тайлов 35-41
+  
+  // Функция для определения размера тайла по его ID
+  const getTileSize = (tileId: number) => {
+    const row = Math.floor(tileId / cols);
+    const col = tileId % cols;
+    
+    const isLastColumn = col === 6;
+    const isLastRow = row === 5;
+    
+    return {
+      width: isLastColumn ? lastColumnWidth : standardTileWidth,
+      height: isLastRow ? lastRowHeight : standardTileHeight
+    };
+  };
+  
+  // Функция для определения позиции тайла
+  const getTilePosition = (tileId: number) => {
+    const row = Math.floor(tileId / cols);
+    const col = tileId % cols;
+    
+    let x = 0;
+    for (let c = 0; c < col; c++) {
+      x += (c === 6 ? lastColumnWidth : standardTileWidth);
+    }
+    
+    let y = 0;
+    for (let r = 0; r < row; r++) {
+      y += (r === 5 ? lastRowHeight : standardTileHeight);
+    }
+    
+    return { x, y };
+  };
+  
+  // Масштаб для отображения в редакторе
+  const displayScale = 0.15; // 15% от оригинального размера
   const tileWidth = mapWidth / cols;
   const tileHeight = mapHeight / rows;
   
@@ -98,8 +139,17 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
   };
 
   const handleSave = () => {
+    const tilesWithSizes = mapTiles.map(tile => {
+      const size = getTileSize(tile.id);
+      return {
+        ...tile,
+        width: size.width,
+        height: size.height
+      };
+    });
+    
     onUpdate({
-      tiles: mapTiles,
+      tiles: tilesWithSizes,
       mapWidth,
       mapHeight,
       tileWidth,
@@ -150,8 +200,11 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
 
       <div className="mb-4 text-sm text-slate-400">
         <p>Размер карты: {mapWidth} × {mapHeight} пикселей</p>
-        <p>Размер тайла: {Math.round(tileWidth)} × {Math.round(tileHeight)} пикселей</p>
-        <p>Загружено: {mapTiles.length} из 42 изображений</p>
+        <p>Стандартный тайл: {standardTileWidth} × {standardTileHeight} пикселей</p>
+        <p>Последний столбец (06, 13, 20, 27, 34): {lastColumnWidth} × {standardTileHeight} пикселей</p>
+        <p>Последний ряд (35-40): {standardTileWidth} × {lastRowHeight} пикселей</p>
+        <p>Тайл 41: {lastColumnWidth} × {lastRowHeight} пикселей</p>
+        <p className="mt-2">Загружено: {mapTiles.length} из 42 изображений</p>
         <p className="mt-2 text-xs">
           💡 Перетащите файлы на нужные ячейки или используйте кнопку загрузки. 
           Файлы должны содержать номер от 00 до 41 в имени.
@@ -165,8 +218,8 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
         <div 
           className="relative"
           style={{ 
-            width: `${cols * 150}px`,
-            height: `${rows * 150}px`
+            width: `${mapWidth * displayScale}px`,
+            height: `${mapHeight * displayScale}px`
           }}
         >
           {Array.from({ length: 42 }).map((_, idx) => {
@@ -174,6 +227,8 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
             const col = idx % cols;
             const tile = mapTiles.find(t => t.id === idx);
             const isHovered = dragOverTile === idx;
+            const tileSize = getTileSize(idx);
+            const tilePos = getTilePosition(idx);
             
             return (
               <div
@@ -186,10 +241,10 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
                     : 'border-slate-600 hover:border-slate-500'
                 }`}
                 style={{
-                  left: `${col * 150}px`,
-                  top: `${row * 150}px`,
-                  width: '150px',
-                  height: '150px'
+                  left: `${tilePos.x * displayScale}px`,
+                  top: `${tilePos.y * displayScale}px`,
+                  width: `${tileSize.width * displayScale}px`,
+                  height: `${tileSize.height * displayScale}px`
                 }}
                 onDragOver={(e) => handleDragOver(e, idx)}
                 onDragLeave={handleDragLeave}
@@ -206,6 +261,7 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
                     <div className="text-center">
                       <div className="text-2xl mb-1">{String(idx).padStart(2, '0')}</div>
                       <div className="text-[10px]">Ряд {row + 1}, Кол {col + 1}</div>
+                      <div className="text-[9px] mt-1">{tileSize.width}×{tileSize.height}</div>
                     </div>
                   </div>
                 )}

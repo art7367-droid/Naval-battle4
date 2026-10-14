@@ -17,6 +17,8 @@ export interface StrategicMapData {
     imageData: string;
     row: number;
     col: number;
+    width?: number;
+    height?: number;
   }>;
   mapWidth: number;
   mapHeight: number;

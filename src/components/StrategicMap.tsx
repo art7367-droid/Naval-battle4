@@ -75,6 +75,7 @@ export default function StrategicMap({ onBack, strategicMapData }: StrategicMapP
   
   // Кэш для загруженных изображений
   const imageCache = useRef<Map<string, HTMLImageElement>>(new Map());
+  const hexSampleImage = useRef<HTMLImageElement | null>(null);
   
   // Загрузка изображений тайлов
   useEffect(() => {
@@ -88,6 +89,62 @@ export default function StrategicMap({ onBack, strategicMapData }: StrategicMapP
       }
     });
   }, [strategicMapData]);
+  
+  // Загрузка образца гекса
+  useEffect(() => {
+    if (strategicMapData?.hexSample) {
+      const img = new Image();
+      img.onload = () => {
+        // Проверяем, нужно ли обработать изображение (удалить белый фон)
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        
+        if (!ctx) {
+          hexSampleImage.current = img;
+          return;
+        }
+        
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        // Проверяем, есть ли белые пиксели
+        let hasWhitePixels = false;
+        const whiteThreshold = 240;
+        
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          
+          if (r > whiteThreshold && g > whiteThreshold && b > whiteThreshold) {
+            hasWhitePixels = true;
+            data[i + 3] = 0; // Делаем прозрачным
+          }
+        }
+        
+        if (hasWhitePixels) {
+          // Возвращаем обработанное изображение
+          ctx.putImageData(imageData, 0, 0);
+          const processedImg = new Image();
+          processedImg.onload = () => {
+            hexSampleImage.current = processedImg;
+            console.log('✅ Образец гекса загружен и обработан (белый фон удалён)');
+          };
+          processedImg.src = canvas.toDataURL('image/png');
+        } else {
+          // Изображение уже прозрачное
+          hexSampleImage.current = img;
+          console.log('✅ Образец гекса загружен');
+        }
+      };
+      img.src = strategicMapData.hexSample;
+    } else {
+      hexSampleImage.current = null;
+    }
+  }, [strategicMapData?.hexSample]);
   
   // Отрисовка карты
   useEffect(() => {
@@ -247,53 +304,94 @@ export default function StrategicMap({ onBack, strategicMapData }: StrategicMapP
     ctx.strokeRect(mapScreenX, mapScreenY, mapScreenWidth, mapScreenHeight);
     
     // Отрисовка гексагональной сетки
-    // Оригинальный гекс: 53 пикселя высота × 43 пикселя ширина
-    // Новый гекс (в 2 раза меньше): 26.5 пикселя высота × 21.5 пикселя ширина
-    const originalHexHeight = 53;
-    const originalHexWidth = 43;
-    const hexHeight = originalHexHeight / 2; // 26.5 пикселей
-    const hexWidth = originalHexWidth / 2; // 21.5 пикселя
+    // Размеры гексов: 21 пикселей ширина × 25 пикселей высота
+    
+    // Для pointy-top гекса (остриём вверх):
+    // - Высота = 2r (где r - радиус от центра до вершины)
+    // - Ширина = √3 × r
+    // - Расстояние между центрами по горизонтали = √3 × r
+    // - Расстояние между центрами по вертикали = 1.5r
+    
+    const hexWidth = 21;  // ширина гекса
+    const hexHeight = 25; // высота гекса
+    
+    // Для pointy-top гекса:
+    // r = hexHeight / 2 (радиус)
+    const hexRadius = hexHeight / 2; // 12.5 пикселей
+    
+    // Правильные расстояния между центрами гексов
+    const hexSpacingX = hexWidth; // горизонтальное расстояние
+    const hexSpacingY = hexHeight * 0.75; // вертикальное расстояние (1.5r)
     
     // Рассчитываем количество гексов для покрытия всей карты
-    const hexCols = Math.ceil(MAP_WIDTH / hexWidth);
-    const hexRows = Math.ceil(MAP_HEIGHT / (hexHeight * 0.75)); // Для pointy-top гексов
+    const hexCols = Math.ceil(MAP_WIDTH / hexSpacingX) + 1;
+    const hexRows = Math.ceil(MAP_HEIGHT / hexSpacingY) + 1;
     
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
     ctx.lineWidth = 1 / viewport.zoom;
     
     // Отрисовка только видимых гексов
-    const startHexCol = Math.max(0, Math.floor(visibleX / hexWidth));
-    const endHexCol = Math.min(hexCols, Math.ceil((visibleX + visibleWidth) / hexWidth));
-    const startHexRow = Math.max(0, Math.floor(visibleY / (hexHeight * 0.75)));
-    const endHexRow = Math.min(hexRows, Math.ceil((visibleY + visibleHeight) / (hexHeight * 0.75)));
+    const startHexCol = Math.max(0, Math.floor(visibleX / hexSpacingX) - 1);
+    const endHexCol = Math.min(hexCols, Math.ceil((visibleX + visibleWidth) / hexSpacingX) + 1);
+    const startHexRow = Math.max(0, Math.floor(visibleY / hexSpacingY) - 1);
+    const endHexRow = Math.min(hexRows, Math.ceil((visibleY + visibleHeight) / hexSpacingY) + 1);
     
-    for (let row = startHexRow; row < endHexRow; row++) {
-      for (let col = startHexCol; col < endHexCol; col++) {
-        // Центр гекса (с учётом смещения для нечётных рядов)
-        const offsetX = (row % 2) * (hexWidth / 2);
-        const centerX = col * hexWidth + hexWidth / 2 + offsetX;
-        const centerY = row * (hexHeight * 0.75) + hexHeight / 2;
-        
-        // Отрисовка гекса (pointy-top ориентация)
-        const screenX = (centerX - visibleX) * viewport.zoom;
-        const screenY = (centerY - visibleY) * viewport.zoom;
-        const screenHexWidth = hexWidth * viewport.zoom;
-        const screenHexHeight = hexHeight * viewport.zoom;
-        
-        ctx.beginPath();
-        // 6 вершин гекса (pointy-top)
-        for (let i = 0; i < 6; i++) {
-          const angle = (Math.PI / 3) * i - Math.PI / 6;
-          const x = screenX + (screenHexWidth / 2) * Math.cos(angle);
-          const y = screenY + (screenHexHeight / 2) * Math.sin(angle);
-          if (i === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            ctx.lineTo(x, y);
-          }
+    // Если есть образец гекса, используем его для отрисовки
+    if (hexSampleImage.current) {
+      const sampleImg = hexSampleImage.current;
+      const sampleWidth = hexWidth * viewport.zoom;
+      const sampleHeight = hexHeight * viewport.zoom;
+      
+      for (let row = startHexRow; row < endHexRow; row++) {
+        for (let col = startHexCol; col < endHexCol; col++) {
+          // Центр гекса
+          // Нечётные ряды смещены на половину ширины
+          const offsetX = (row % 2) * (hexSpacingX / 2);
+          const centerX = col * hexSpacingX + offsetX;
+          const centerY = row * hexSpacingY;
+          
+          // Позиция для отрисовки образца
+          const screenX = (centerX - visibleX) * viewport.zoom - sampleWidth / 2;
+          const screenY = (centerY - visibleY) * viewport.zoom - sampleHeight / 2;
+          
+          // Отрисовка образца гекса
+          ctx.drawImage(sampleImg, screenX, screenY, sampleWidth, sampleHeight);
         }
-        ctx.closePath();
-        ctx.stroke();
+      }
+    } else {
+      // Если образца нет, рисуем программно
+      for (let row = startHexRow; row < endHexRow; row++) {
+        for (let col = startHexCol; col < endHexCol; col++) {
+          // Центр гекса
+          // Нечётные ряды смещены на половину ширины
+          const offsetX = (row % 2) * (hexSpacingX / 2);
+          const centerX = col * hexSpacingX + offsetX;
+          const centerY = row * hexSpacingY;
+          
+          // Отрисовка гекса (pointy-top ориентация)
+          const screenX = (centerX - visibleX) * viewport.zoom;
+          const screenY = (centerY - visibleY) * viewport.zoom;
+          
+          // Радиусы для отрисовки
+          const screenRadiusX = (hexWidth / 2) * viewport.zoom;
+          const screenRadiusY = (hexHeight / 2) * viewport.zoom;
+          
+          ctx.beginPath();
+          // 6 вершин гекса (pointy-top)
+          // Углы: -90°, -30°, 30°, 90°, 150°, 210° (или в радианах)
+          for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI / 3) * i - Math.PI / 2; // Начинаем с верхней вершины
+            const x = screenX + screenRadiusX * Math.cos(angle);
+            const y = screenY + screenRadiusY * Math.sin(angle);
+            if (i === 0) {
+              ctx.moveTo(x, y);
+            } else {
+              ctx.lineTo(x, y);
+            }
+          }
+          ctx.closePath();
+          ctx.stroke();
+        }
       }
     }
     
@@ -377,8 +475,44 @@ export default function StrategicMap({ onBack, strategicMapData }: StrategicMapP
           ← Назад в меню
         </button>
         <h1 className="text-2xl font-bold text-cyan-300">🗺️ Стратегическая карта Тихого океана</h1>
-        <div className="text-sm text-slate-400">
-          Масштаб: {Math.round(viewport.zoom * 100)}%
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-slate-400">
+            Масштаб: {Math.round(viewport.zoom * 100)}%
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-slate-400">Масштаб:</label>
+            <input
+              type="range"
+              min="0"
+              max="3"
+              step="1"
+              value={[0.5, 1, 1.5, 2].indexOf(viewport.zoom)}
+              onChange={(e) => {
+                const zoomLevels = [0.5, 1, 1.5, 2];
+                const newZoom = zoomLevels[parseInt(e.target.value)];
+                setViewport(prev => ({ ...prev, zoom: newZoom }));
+              }}
+              className="w-32 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
+              style={{
+                background: `linear-gradient(to right, #06b6d4 0%, #06b6d4 ${([0.5, 1, 1.5, 2].indexOf(viewport.zoom) / 3) * 100}%, #374151 ${([0.5, 1, 1.5, 2].indexOf(viewport.zoom) / 3) * 100}%, #374151 100%)`
+              }}
+            />
+            <div className="flex gap-1 text-xs">
+              {[50, 100, 150, 200].map((percent, idx) => (
+                <button
+                  key={percent}
+                  onClick={() => setViewport(prev => ({ ...prev, zoom: percent / 100 }))}
+                  className={`px-2 py-1 rounded transition-colors ${
+                    Math.round(viewport.zoom * 100) === percent
+                      ? 'bg-cyan-600 text-white'
+                      : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                  }`}
+                >
+                  {percent}%
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
       

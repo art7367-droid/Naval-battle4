@@ -62,9 +62,11 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const hexSampleInputRef = useRef<HTMLInputElement>(null);
   const [currentTileIndex, setCurrentTileIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOverTile, setDragOverTile] = useState<number | null>(null);
+  const [hexSample, setHexSample] = useState<string | undefined>(strategicMapData?.hexSample);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -213,7 +215,8 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
       mapWidth,
       mapHeight,
       tileWidth,
-      tileHeight
+      tileHeight,
+      hexSample: hexSample
     };
     
     try {
@@ -233,6 +236,7 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
       try {
         await deleteFromIndexedDB();
         setMapTiles([]);
+        setHexSample(undefined);
         console.log('✅ Данные очищены из IndexedDB');
       } catch (error) {
         console.error('❌ Ошибка очистки:', error);
@@ -256,7 +260,8 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
       mapWidth,
       mapHeight,
       tileWidth,
-      tileHeight
+      tileHeight,
+      hexSample: hexSample
     };
     
     const jsonData = JSON.stringify(dataToExport, null, 2);
@@ -282,6 +287,9 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
         const data = JSON.parse(event.target?.result as string) as StrategicMapData;
         if (data.tiles && Array.isArray(data.tiles)) {
           setMapTiles(data.tiles);
+          if (data.hexSample) {
+            setHexSample(data.hexSample);
+          }
           await saveToIndexedDB(data);
           console.log(`✅ Импортировано ${data.tiles.length} тайлов в IndexedDB`);
           alert(`✅ Импортировано ${data.tiles.length} тайлов`);
@@ -295,6 +303,104 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
     };
     reader.readAsText(file);
     e.target.value = ''; // Сброс input для повторного импорта того же файла
+  };
+
+  const handleHexSampleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const originalImageData = event.target?.result as string;
+      
+      // Обрабатываем изображение: удаляем белый фон
+      const img = new Image();
+      img.onload = async () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        
+        if (!ctx) {
+          console.error('❌ Не удалось получить контекст canvas');
+          return;
+        }
+        
+        // Рисуем оригинальное изображение
+        ctx.drawImage(img, 0, 0);
+        
+        // Получаем данные пикселей
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        // Проходим по всем пикселям и делаем белые прозрачными
+        // Белый цвет: R=255, G=255, B=255
+        // Порог для определения "белого" (можно настроить)
+        const whiteThreshold = 240;
+        
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          
+          // Если пиксель близок к белому, делаем его прозрачным
+          if (r > whiteThreshold && g > whiteThreshold && b > whiteThreshold) {
+            data[i + 3] = 0; // Alpha = 0 (полностью прозрачный)
+          }
+        }
+        
+        // Возвращаем обработанные данные обратно в canvas
+        ctx.putImageData(imageData, 0, 0);
+        
+        // Получаем обработанное изображение как data URL
+        const processedImageData = canvas.toDataURL('image/png');
+        
+        setHexSample(processedImageData);
+        
+        // Сохраняем с образцом
+        const tilesWithSizes = mapTiles.map(tile => {
+          const size = getTileSize(tile.id);
+          return {
+            ...tile,
+            width: size.width,
+            height: size.height
+          };
+        });
+        
+        const dataToSave: StrategicMapData = {
+          tiles: tilesWithSizes,
+          mapWidth,
+          mapHeight,
+          tileWidth,
+          tileHeight,
+          hexSample: processedImageData
+        };
+        
+        try {
+          await saveToIndexedDB(dataToSave);
+          console.log('✅ Образец гекса обработан и сохранён в IndexedDB (белый фон удалён)');
+          alert('✅ Образец гекса загружен!\nБелый фон автоматически удалён.');
+        } catch (error) {
+          console.error('❌ Ошибка сохранения образца:', error);
+          alert('❌ Ошибка сохранения образца');
+        }
+      };
+      
+      img.onerror = () => {
+        console.error('❌ Ошибка загрузки изображения');
+        alert('❌ Ошибка загрузки изображения');
+      };
+      
+      img.src = originalImageData;
+    };
+    
+    reader.onerror = () => {
+      console.error('❌ Ошибка чтения файла');
+      alert('❌ Ошибка чтения файла');
+    };
+    
+    reader.readAsDataURL(file);
+    e.target.value = ''; // Сброс input
   };
 
   return (
@@ -352,6 +458,68 @@ export default function StrategicMapEditor({ strategicMapData, onUpdate }: Strat
         onChange={handleImport}
         className="hidden"
       />
+      
+      <input
+        ref={hexSampleInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleHexSampleUpload}
+        className="hidden"
+      />
+
+      {/* Секция образца гекса */}
+      <div className="mb-4 p-3 bg-slate-900/50 rounded border border-slate-700">
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="text-sm font-semibold text-cyan-300">⬡ Образец гекса для сетки</h4>
+          <div className="flex gap-2">
+            <button
+              onClick={() => hexSampleInputRef.current?.click()}
+              className="px-3 py-1 bg-teal-600 hover:bg-teal-700 rounded text-xs"
+            >
+              📁 Загрузить образец
+            </button>
+            {hexSample && (
+              <button
+                onClick={() => {
+                  setHexSample(undefined);
+                  const dataToSave: StrategicMapData = {
+                    tiles: mapTiles.map(tile => ({
+                      ...tile,
+                      width: getTileSize(tile.id).width,
+                      height: getTileSize(tile.id).height
+                    })),
+                    mapWidth,
+                    mapHeight,
+                    tileWidth,
+                    tileHeight
+                  };
+                  saveToIndexedDB(dataToSave);
+                }}
+                className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-xs"
+              >
+                ✕ Удалить
+              </button>
+            )}
+          </div>
+        </div>
+        {hexSample ? (
+          <div className="flex items-center gap-3">
+            <img 
+              src={hexSample} 
+              alt="Образец гекса" 
+              className="border border-slate-600 rounded"
+              style={{ maxWidth: '100px', maxHeight: '100px' }}
+            />
+            <div className="text-xs text-green-400">
+              ✅ Образец загружен и будет использоваться для отрисовки гексагональной сетки
+            </div>
+          </div>
+        ) : (
+          <div className="text-xs text-slate-500">
+            ⚠️ Образец не загружен. Загрузите изображение одного гекса для отрисовки сетки на карте.
+          </div>
+        )}
+      </div>
 
       <div className="mb-4 text-sm text-slate-400">
         <p>Размер карты: {mapWidth} × {mapHeight} пикселей</p>

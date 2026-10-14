@@ -17,6 +17,8 @@ import BattleLog from './components/BattleLog';
 import BattleShipDetailCard from './components/BattleShipDetailCard';
 import ShipDatabaseManager from './components/ShipDatabaseManager';
 import ShipSelectionScreen from './components/ShipSelectionScreen';
+import StrategicMap from './components/StrategicMap';
+import StrategicMapEditor from './components/StrategicMapEditor';
 
 function shipIcon(type: string): string {
   switch (type) {
@@ -27,7 +29,9 @@ function shipIcon(type: string): string {
   }
 }
 
-type AppScreen = 'menu' | 'database' | 'selection' | 'battle';
+import { StrategicMapData } from './types/shipDatabase';
+
+type AppScreen = 'menu' | 'database' | 'selection' | 'battle' | 'campaign' | 'mapEditor';
 
 function App() {
   const [screen, setScreen] = useState<AppScreen>('menu');
@@ -54,6 +58,10 @@ function App() {
   const [battleLog, setBattleLog] = useState<BattleLogEntry[]>([]);
   const [showBattleLog, setShowBattleLog] = useState(true); // Лог боя видим по умолчанию
   const [hitMarkers, setHitMarkers] = useState<Array<{shipId: number; compartmentId: string; turn: number; damage: number}>>([]);
+  const [strategicMapData, setStrategicMapData] = useState<StrategicMapData | undefined>(() => {
+    const saved = localStorage.getItem('strategicMapData');
+    return saved ? JSON.parse(saved) : undefined;
+  });
   
   // useRef для хранения актуального значения playerShotTargets
   const playerShotTargetsRef = useRef<{ shipId: number; targetShipId: number }[]>([]);
@@ -849,7 +857,14 @@ function App() {
               onClick={() => setScreen('database')}
               className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg font-bold text-lg hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg"
             >
-              📚 База данных кораблей
+              🔧 Редактор
+            </button>
+            
+            <button
+              onClick={() => setScreen('mapEditor')}
+              className="w-full px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg font-bold text-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg"
+            >
+              🗺️ Редактор карты
             </button>
             
             <button
@@ -858,11 +873,18 @@ function App() {
             >
               ⚔️ Начать бой
             </button>
+            
+            <button
+              onClick={() => setScreen('campaign')}
+              className="w-full px-6 py-4 bg-gradient-to-r from-green-600 to-teal-600 rounded-lg font-bold text-lg hover:from-green-700 hover:to-teal-700 transition-all shadow-lg"
+            >
+              🗺️ Кампания
+            </button>
           </div>
           
           <div className="mt-8 text-center text-sm text-slate-400">
-            <p>Версия с базой данных кораблей</p>
-            <p className="mt-2">Создавайте и управляйте коллекцией кораблей, выбирайте флоты для сражений</p>
+            <p>Версия с базой данных кораблей и стратегической картой</p>
+            <p className="mt-2">Создавайте корабли, сражайтесь в тактических боях или исследуйте Тихий океан в кампании</p>
           </div>
         </div>
       </div>
@@ -904,6 +926,37 @@ function App() {
         <ShipSelectionScreen onStartBattle={startBattleFromDB} />
       </div>
     );
+  }
+
+  // Экран редактора стратегической карты
+  if (screen === 'mapEditor') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white p-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-2xl font-bold text-cyan-300">🗺️ Редактор стратегической карты</h1>
+            <button
+              onClick={() => setScreen('menu')}
+              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg"
+            >
+              ← Назад в меню
+            </button>
+          </div>
+          <StrategicMapEditor
+            strategicMapData={strategicMapData}
+            onUpdate={(data) => {
+              setStrategicMapData(data);
+              localStorage.setItem('strategicMapData', JSON.stringify(data));
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Экран кампании
+  if (screen === 'campaign') {
+    return <StrategicMap onBack={() => setScreen('menu')} strategicMapData={strategicMapData} />;
   }
 
   // Экран боя

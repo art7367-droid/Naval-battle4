@@ -13,13 +13,13 @@ export default function BattleShipSchematic({ ship, hitMarkers = [] }: BattleShi
   
   // Используем те же размеры что и в базе данных
   const cols = 56;
-  const rows = 23;
+  const rows = 13;
   const gridSize = 12;
   const padding = 20;
   
   // Размеры SVG (такие же как в ShipDetailCard)
   const svgWidth = cols * gridSize + padding * 2;
-  const svgHeight = rows * gridSize + padding * 2 + 40; // +40 для линейки
+  const svgHeight = rows * gridSize + padding * 2 + 20; // +20 для линейки
   
   const getCompartmentColor = (comp: Compartment) => {
     return getCompartmentTypeColor(comp.type, comp.status);
@@ -98,23 +98,23 @@ export default function BattleShipSchematic({ ship, hitMarkers = [] }: BattleShi
       
       {/* Линейка снизу */}
       <g>
-        <line x1={padding} y1={svgHeight - 30} x2={svgWidth - padding} y2={svgHeight - 30} stroke="#94a3b8" strokeWidth="1" />
+        <line x1={padding} y1={svgHeight - 18} x2={svgWidth - padding} y2={svgHeight - 18} stroke="#94a3b8" strokeWidth="1" />
         {Array.from({ length: Math.floor(cols / 4) + 1 }).map((_, i) => {
           const x = padding + i * 4 * gridSize;
           const meters = i * 20;
           return (
             <g key={`ruler-${i}`}>
-              <line x1={x} y1={svgHeight - 34} x2={x} y2={svgHeight - 26} stroke="#94a3b8" strokeWidth="1" />
-              <text x={x} y={svgHeight - 16} fill="#94a3b8" fontSize="7" textAnchor="middle">{meters}м</text>
+              <line x1={x} y1={svgHeight - 18} x2={x} y2={svgHeight - 12} stroke="#94a3b8" strokeWidth="1" />
+              <text x={x} y={svgHeight - 6} fill="#94a3b8" fontSize="7" textAnchor="middle">{meters}м</text>
             </g>
           );
         })}
         {Array.from({ length: cols + 1 }).map((_, i) => {
           if (i % 4 === 0) return null;
           const x = padding + i * gridSize;
-          return <line key={`tick-${i}`} x1={x} y1={svgHeight - 32} x2={x} y2={svgHeight - 28} stroke="#64748b" strokeWidth="0.5" />;
+          return <line key={`tick-${i}`} x1={x} y1={svgHeight - 18} x2={x} y2={svgHeight - 14} stroke="#64748b" strokeWidth="0.5" />;
         })}
-        <text x={svgWidth / 2} y={svgHeight - 5} fill="#64748b" fontSize="8" textAnchor="middle">1 клетка = 5м | Всего: {cols * 5}м</text>
+        <text x={svgWidth / 2} y={svgHeight - 2} fill="#64748b" fontSize="8" textAnchor="middle">1 клетка = 5м | Всего: {cols * 5}м</text>
       </g>
     </svg>
   );

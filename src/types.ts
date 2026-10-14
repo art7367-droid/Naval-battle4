@@ -148,7 +148,7 @@ export const SHIP_FLEET = [
 ];
 
 export const TOTAL_SHIPS = SHIP_FLEET.reduce((sum, s) => sum + s.count, 0);
-export const BOARD_SIZE = 25;
+export const BOARD_SIZE = 42;
 
 // Функция создания компонентов больше не используется - типы отсеков задаются вручную
 

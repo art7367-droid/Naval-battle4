@@ -22,7 +22,7 @@ interface HexGridProps {
   onShipRightClick?: (e: React.MouseEvent, ship: Ship) => void;
 }
 
-const HEX_SIZE = 20;
+const HEX_SIZE = 15;
 
 function getHexPoints(size: number): string {
   const points = [];

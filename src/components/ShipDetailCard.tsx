@@ -59,7 +59,7 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
 
   const cols = 56;
   const rows = 23;
-  const gridSize = 12;
+  const gridSize = 7;
   const padding = 20;
   const width = cols * gridSize + padding * 2;
   const height = rows * gridSize + padding * 2;

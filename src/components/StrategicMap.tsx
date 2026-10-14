@@ -113,28 +113,63 @@ export default function StrategicMap({ onBack, strategicMapData }: StrategicMapP
     // Отрисовка тайлов (только видимых)
     if (strategicMapData?.tiles) {
       const cols = 7;
-      const rows = 6;
-      const tileWidth = MAP_WIDTH / cols;
-      const tileHeight = MAP_HEIGHT / rows;
+      
+      // Размеры тайлов
+      const standardTileWidth = 1500;
+      const standardTileHeight = 1500;
+      const lastColumnWidth = 703;
+      const lastRowHeight = 267;
+      
+      // Функция для определения размера тайла по его ID
+      const getTileSize = (tileId: number, tileData?: any) => {
+        const row = Math.floor(tileId / cols);
+        const col = tileId % cols;
+        
+        const isLastColumn = col === 6;
+        const isLastRow = row === 5;
+        
+        return {
+          width: tileData?.width || (isLastColumn ? lastColumnWidth : standardTileWidth),
+          height: tileData?.height || (isLastRow ? lastRowHeight : standardTileHeight)
+        };
+      };
+      
+      // Функция для определения позиции тайла
+      const getTilePosition = (tileId: number) => {
+        const row = Math.floor(tileId / cols);
+        const col = tileId % cols;
+        
+        let x = 0;
+        for (let c = 0; c < col; c++) {
+          x += (c === 6 ? lastColumnWidth : standardTileWidth);
+        }
+        
+        let y = 0;
+        for (let r = 0; r < row; r++) {
+          y += (r === 5 ? lastRowHeight : standardTileHeight);
+        }
+        
+        return { x, y };
+      };
       
       strategicMapData.tiles.forEach(tile => {
-        const tileX = tile.col * tileWidth;
-        const tileY = tile.row * tileHeight;
-        const tileRight = tileX + tileWidth;
-        const tileBottom = tileY + tileHeight;
+        const tileSize = getTileSize(tile.id, tile);
+        const tilePos = getTilePosition(tile.id);
+        const tileRight = tilePos.x + tileSize.width;
+        const tileBottom = tilePos.y + tileSize.height;
         
         // Проверка видимости тайла
-        if (tileRight < visibleX || tileX > visibleX + visibleWidth ||
-            tileBottom < visibleY || tileY > visibleY + visibleHeight) {
+        if (tileRight < visibleX || tilePos.x > visibleX + visibleWidth ||
+            tileBottom < visibleY || tilePos.y > visibleY + visibleHeight) {
           return; // Тайл не виден
         }
         
         const img = imageCache.current.get(tile.imageData);
         if (img && img.complete && img.naturalWidth > 0) {
-          const screenX = (tileX - visibleX) * viewport.zoom;
-          const screenY = (tileY - visibleY) * viewport.zoom;
-          const screenWidth = tileWidth * viewport.zoom;
-          const screenHeight = tileHeight * viewport.zoom;
+          const screenX = (tilePos.x - visibleX) * viewport.zoom;
+          const screenY = (tilePos.y - visibleY) * viewport.zoom;
+          const screenWidth = tileSize.width * viewport.zoom;
+          const screenHeight = tileSize.height * viewport.zoom;
           
           ctx.drawImage(img, screenX, screenY, screenWidth, screenHeight);
         }
@@ -210,6 +245,57 @@ export default function StrategicMap({ onBack, strategicMapData }: StrategicMapP
     const mapScreenWidth = MAP_WIDTH * viewport.zoom;
     const mapScreenHeight = MAP_HEIGHT * viewport.zoom;
     ctx.strokeRect(mapScreenX, mapScreenY, mapScreenWidth, mapScreenHeight);
+    
+    // Отрисовка гексагональной сетки
+    // Оригинальный гекс: 53 пикселя высота × 43 пикселя ширина
+    // Новый гекс (в 2 раза меньше): 26.5 пикселя высота × 21.5 пикселя ширина
+    const originalHexHeight = 53;
+    const originalHexWidth = 43;
+    const hexHeight = originalHexHeight / 2; // 26.5 пикселей
+    const hexWidth = originalHexWidth / 2; // 21.5 пикселя
+    
+    // Рассчитываем количество гексов для покрытия всей карты
+    const hexCols = Math.ceil(MAP_WIDTH / hexWidth);
+    const hexRows = Math.ceil(MAP_HEIGHT / (hexHeight * 0.75)); // Для pointy-top гексов
+    
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 1 / viewport.zoom;
+    
+    // Отрисовка только видимых гексов
+    const startHexCol = Math.max(0, Math.floor(visibleX / hexWidth));
+    const endHexCol = Math.min(hexCols, Math.ceil((visibleX + visibleWidth) / hexWidth));
+    const startHexRow = Math.max(0, Math.floor(visibleY / (hexHeight * 0.75)));
+    const endHexRow = Math.min(hexRows, Math.ceil((visibleY + visibleHeight) / (hexHeight * 0.75)));
+    
+    for (let row = startHexRow; row < endHexRow; row++) {
+      for (let col = startHexCol; col < endHexCol; col++) {
+        // Центр гекса (с учётом смещения для нечётных рядов)
+        const offsetX = (row % 2) * (hexWidth / 2);
+        const centerX = col * hexWidth + hexWidth / 2 + offsetX;
+        const centerY = row * (hexHeight * 0.75) + hexHeight / 2;
+        
+        // Отрисовка гекса (pointy-top ориентация)
+        const screenX = (centerX - visibleX) * viewport.zoom;
+        const screenY = (centerY - visibleY) * viewport.zoom;
+        const screenHexWidth = hexWidth * viewport.zoom;
+        const screenHexHeight = hexHeight * viewport.zoom;
+        
+        ctx.beginPath();
+        // 6 вершин гекса (pointy-top)
+        for (let i = 0; i < 6; i++) {
+          const angle = (Math.PI / 3) * i - Math.PI / 6;
+          const x = screenX + (screenHexWidth / 2) * Math.cos(angle);
+          const y = screenY + (screenHexHeight / 2) * Math.sin(angle);
+          if (i === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        }
+        ctx.closePath();
+        ctx.stroke();
+      }
+    }
     
   }, [viewport, regions, strategicMapData]);
   

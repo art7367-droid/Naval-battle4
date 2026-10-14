@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
+import { StrategicMapData } from '../types/shipDatabase';
 
 interface StrategicMapProps {
   onBack: () => void;
+  strategicMapData?: StrategicMapData;
 }
 
 interface Viewport {
@@ -22,13 +24,13 @@ interface Region {
   color: string;
 }
 
-export default function StrategicMap({ onBack }: StrategicMapProps) {
+export default function StrategicMap({ onBack, strategicMapData }: StrategicMapProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   
   // Размер карты Тихого океана
-  const MAP_WIDTH = 9703;
-  const MAP_HEIGHT = 4767;
+  const MAP_WIDTH = strategicMapData?.mapWidth || 9703;
+  const MAP_HEIGHT = strategicMapData?.mapHeight || 7767;
   
   const [viewport, setViewport] = useState<Viewport>({
     x: 0,
@@ -71,6 +73,22 @@ export default function StrategicMap({ onBack }: StrategicMapProps) {
     return () => window.removeEventListener('resize', updateSize);
   }, []);
   
+  // Кэш для загруженных изображений
+  const imageCache = useRef<Map<string, HTMLImageElement>>(new Map());
+  
+  // Загрузка изображений тайлов
+  useEffect(() => {
+    if (!strategicMapData?.tiles) return;
+    
+    strategicMapData.tiles.forEach(tile => {
+      if (!imageCache.current.has(tile.imageData)) {
+        const img = new Image();
+        img.src = tile.imageData;
+        imageCache.current.set(tile.imageData, img);
+      }
+    });
+  }, [strategicMapData]);
+  
   // Отрисовка карты
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -91,6 +109,70 @@ export default function StrategicMap({ onBack }: StrategicMapProps) {
     const visibleY = viewport.y / viewport.zoom;
     const visibleWidth = viewport.width / viewport.zoom;
     const visibleHeight = viewport.height / viewport.zoom;
+    
+    // Отрисовка тайлов (только видимых)
+    if (strategicMapData?.tiles) {
+      const cols = 7;
+      const rows = 6;
+      const tileWidth = MAP_WIDTH / cols;
+      const tileHeight = MAP_HEIGHT / rows;
+      
+      strategicMapData.tiles.forEach(tile => {
+        const tileX = tile.col * tileWidth;
+        const tileY = tile.row * tileHeight;
+        const tileRight = tileX + tileWidth;
+        const tileBottom = tileY + tileHeight;
+        
+        // Проверка видимости тайла
+        if (tileRight < visibleX || tileX > visibleX + visibleWidth ||
+            tileBottom < visibleY || tileY > visibleY + visibleHeight) {
+          return; // Тайл не виден
+        }
+        
+        const img = imageCache.current.get(tile.imageData);
+        if (img && img.complete && img.naturalWidth > 0) {
+          const screenX = (tileX - visibleX) * viewport.zoom;
+          const screenY = (tileY - visibleY) * viewport.zoom;
+          const screenWidth = tileWidth * viewport.zoom;
+          const screenHeight = tileHeight * viewport.zoom;
+          
+          ctx.drawImage(img, screenX, screenY, screenWidth, screenHeight);
+        }
+      });
+    } else {
+      // Если нет загруженных тайлов, рисуем статические регионы
+      regions.forEach(region => {
+        // Проверка видимости региона
+        const regionRight = region.x + region.width;
+        const regionBottom = region.y + region.height;
+        
+        if (regionRight < visibleX || region.x > visibleX + visibleWidth ||
+            regionBottom < visibleY || region.y > visibleY + visibleHeight) {
+          return; // Регион не виден
+        }
+        
+        const screenX = (region.x - visibleX) * viewport.zoom;
+        const screenY = (region.y - visibleY) * viewport.zoom;
+        const screenWidth = region.width * viewport.zoom;
+        const screenHeight = region.height * viewport.zoom;
+        
+        // Фон региона
+        ctx.fillStyle = region.color + '40'; // 25% прозрачность
+        ctx.fillRect(screenX, screenY, screenWidth, screenHeight);
+        
+        // Граница региона
+        ctx.strokeStyle = region.color;
+        ctx.lineWidth = 2 / viewport.zoom;
+        ctx.strokeRect(screenX, screenY, screenWidth, screenHeight);
+        
+        // Название региона
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `${Math.max(12, 16 * viewport.zoom)}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(region.name, screenX + screenWidth / 2, screenY + screenHeight / 2);
+      });
+    }
     
     // Отрисовка сетки
     ctx.strokeStyle = '#334155';
@@ -120,39 +202,6 @@ export default function StrategicMap({ onBack }: StrategicMapProps) {
       }
     }
     
-    // Отрисовка регионов (только видимых)
-    regions.forEach(region => {
-      // Проверка видимости региона
-      const regionRight = region.x + region.width;
-      const regionBottom = region.y + region.height;
-      
-      if (regionRight < visibleX || region.x > visibleX + visibleWidth ||
-          regionBottom < visibleY || region.y > visibleY + visibleHeight) {
-        return; // Регион не виден
-      }
-      
-      const screenX = (region.x - visibleX) * viewport.zoom;
-      const screenY = (region.y - visibleY) * viewport.zoom;
-      const screenWidth = region.width * viewport.zoom;
-      const screenHeight = region.height * viewport.zoom;
-      
-      // Фон региона
-      ctx.fillStyle = region.color + '40'; // 25% прозрачность
-      ctx.fillRect(screenX, screenY, screenWidth, screenHeight);
-      
-      // Граница региона
-      ctx.strokeStyle = region.color;
-      ctx.lineWidth = 2 / viewport.zoom;
-      ctx.strokeRect(screenX, screenY, screenWidth, screenHeight);
-      
-      // Название региона
-      ctx.fillStyle = '#ffffff';
-      ctx.font = `${Math.max(12, 16 * viewport.zoom)}px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(region.name, screenX + screenWidth / 2, screenY + screenHeight / 2);
-    });
-    
     // Границы карты
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 3 / viewport.zoom;
@@ -162,7 +211,7 @@ export default function StrategicMap({ onBack }: StrategicMapProps) {
     const mapScreenHeight = MAP_HEIGHT * viewport.zoom;
     ctx.strokeRect(mapScreenX, mapScreenY, mapScreenWidth, mapScreenHeight);
     
-  }, [viewport, regions]);
+  }, [viewport, regions, strategicMapData]);
   
   // Обработка мыши - перемещение карты
   const handleMouseDown = (e: React.MouseEvent) => {

@@ -11,6 +11,19 @@ export interface WeaponSystem {
   rateOfFire: number;
 }
 
+export interface StrategicMapData {
+  tiles: Array<{
+    id: number;
+    imageData: string;
+    row: number;
+    col: number;
+  }>;
+  mapWidth: number;
+  mapHeight: number;
+  tileWidth: number;
+  tileHeight: number;
+}
+
 export interface ShipDatabaseEntry {
   id: string;
   name: string;
@@ -50,6 +63,7 @@ export interface ShipDatabaseEntry {
       armor: number;
     }>;
   };
+  strategicMapData?: StrategicMapData;
   createdAt: number;
   updatedAt: number;
 }

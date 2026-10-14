@@ -911,34 +911,132 @@ function App() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white p-1">
       <div className="w-full">
         {phase !== 'placement' && (
-          <div className="flex flex-col lg:flex-row justify-start gap-2 items-start">
-            <div className="flex flex-col gap-2 flex-shrink-0">
-              <BattleShipDetailCard ship={selectedShipForDetail} hitMarkers={hitMarkers} />
-              {showBattleLog && <BattleLog entries={battleLog} title="Журнал боя" />}
+          <>
+            {/* Верхняя панель с кнопками управления и информацией о флотах */}
+            <div className="mb-2">
+              {/* Кнопки управления */}
+              <div className="flex justify-center gap-3 mb-2 flex-wrap">
+                {phase === 'planning' && selectedTarget && (
+                  <button
+                    onClick={confirmShot}
+                    className="px-5 py-2 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-lg font-semibold hover:from-yellow-600 hover:to-orange-700 transition-all shadow-lg animate-pulse"
+                  >
+                    🎯 Подтвердить выстрел
+                  </button>
+                )}
+                {phase === 'planning' && (
+                  <button
+                    onClick={skipShot}
+                    className="px-5 py-2 bg-gradient-to-r from-slate-500 to-slate-600 rounded-lg font-semibold hover:from-slate-600 hover:to-slate-700 transition-all shadow-lg"
+                  >
+                    ⏭️ Пропустить выстрел
+                  </button>
+                )}
+                {(phase === 'results' || phase === 'gameOver') && battleLog.length > 0 && (
+                  <button
+                    onClick={() => setShowBattleLog(!showBattleLog)}
+                    className="px-5 py-2 bg-gradient-to-r from-slate-600 to-slate-700 rounded-lg font-semibold hover:from-slate-700 hover:to-slate-800 transition-all shadow-lg"
+                  >
+                    📜 {showBattleLog ? 'Скрыть' : 'Показать'} журнал ({battleLog.length})
+                  </button>
+                )}
+                {phase === 'gameOver' && (
+                  <button
+                    onClick={resetGame}
+                    className="px-5 py-2 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg font-semibold hover:from-purple-600 hover:to-pink-700 transition-all shadow-lg"
+                  >
+                    🔄 Новая игра
+                  </button>
+                )}
+              </div>
+
+              {/* Информация о флотах */}
+              <div className="flex justify-center gap-6 mb-2 flex-wrap">
+                <div className="text-center">
+                  <div className="text-cyan-300 font-semibold mb-1">🛡️ Ваш флот</div>
+                  <div className="flex gap-2 text-xs flex-wrap justify-center max-w-md">
+                    {playerShips.map(ship => (
+                      <button
+                        key={ship.id}
+                        onClick={() => phase === 'movement' && handleShipSelectForMove(ship)}
+                        disabled={ship.currentHP <= 0 || ship.hasMoved || ship.isSunk}
+                        className={`px-2 py-1 rounded transition-all relative ${
+                          ship.isSunk
+                            ? 'bg-gray-900/70 text-gray-400 line-through opacity-60'
+                            : ship.currentHP <= 0
+                            ? 'bg-red-900/50 text-red-300 line-through opacity-50'
+                            : selectedShipForMove?.id === ship.id
+                            ? 'bg-green-600/70 text-green-100 ring-2 ring-green-400'
+                            : phase === 'movement' && !ship.hasMoved
+                            ? 'bg-blue-700/50 text-blue-200 hover:bg-blue-600/50 cursor-pointer'
+                            : 'bg-slate-700/50 text-slate-300'
+                        }`}
+                      >
+                        {shipIcon(ship.type)} {ship.currentHP}/{ship.maxHP}
+                        {ship.stats.fires > 0 && <span className="ml-1" title={`${ship.stats.fires} пожар(ов)`}>🔥</span>}
+                        {ship.stats.flooding > 0.1 && <span className="ml-1" title={`Затопление ${Math.round(ship.stats.flooding * 100)}%`}>🌊</span>}
+                        {ship.isSunk && <span className="ml-1" title="Потоплен">☠️</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-red-300 font-semibold mb-1">🎯 Вражеский флот</div>
+                  <div className="flex gap-2 text-xs flex-wrap justify-center max-w-md">
+                    {enemyShips.map(ship => (
+                      <div
+                        key={ship.id}
+                        className={`px-2 py-1 rounded ${
+                          ship.isSunk
+                            ? 'bg-gray-900/70 text-gray-400 line-through opacity-60'
+                            : ship.currentHP <= 0
+                            ? 'bg-red-900/50 text-red-300 line-through opacity-50'
+                            : ship.currentHP < ship.maxHP
+                            ? 'bg-orange-600/50 text-orange-200'
+                            : 'bg-slate-700/50 text-slate-300'
+                        }`}
+                      >
+                        {shipIcon(ship.type)} {ship.currentHP}/{ship.maxHP}
+                        {ship.stats.fires > 0 && <span className="ml-1" title={`${ship.stats.fires} пожар(ов)`}>🔥</span>}
+                        {ship.stats.flooding > 0.1 && <span className="ml-1" title={`Затопление ${Math.round(ship.stats.flooding * 100)}%`}>🌊</span>}
+                        {ship.isSunk && <span className="ml-1" title="Потоплен">☠️</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="flex-1 overflow-auto">
-              <HexGrid
-                playerShips={playerShips}
-                enemyShips={enemyShips}
-                phase={phase}
-                selectedTarget={selectedTarget}
-                shotTargets={playerShotTargets}
-                shots={playerShots}
-                enemyShots={enemyShots}
-                selectedShipForMove={selectedShipForMove}
-                reachableHexes={reachableHexes}
-                attackingShip={playerShips[currentShipIndex]}
-                playerTrajectories={playerTrajectories}
-                enemyTrajectories={enemyTrajectories}
-                isAnimating={isAnimating}
-                movementOrders={movementOrders}
-                shotAnimations={shotAnimations}
-                onCellClick={handleCellClick}
-                onShipClick={handleShipClickForDetail}
-                onShipRightClick={handleShipRightClick}
-              />
+
+            {/* Основная область с картой и панелью слева */}
+            <div className="flex flex-col lg:flex-row justify-start gap-2 items-start">
+              <div className="flex flex-col gap-2 flex-shrink-0 mt-24">
+                <BattleShipDetailCard ship={selectedShipForDetail} hitMarkers={hitMarkers} />
+                {showBattleLog && <BattleLog entries={battleLog} title="Журнал боя" />}
+              </div>
+              <div className="flex-1 overflow-auto">
+                <HexGrid
+                  playerShips={playerShips}
+                  enemyShips={enemyShips}
+                  phase={phase}
+                  selectedTarget={selectedTarget}
+                  shotTargets={playerShotTargets}
+                  shots={playerShots}
+                  enemyShots={enemyShots}
+                  selectedShipForMove={selectedShipForMove}
+                  reachableHexes={reachableHexes}
+                  attackingShip={playerShips[currentShipIndex]}
+                  playerTrajectories={playerTrajectories}
+                  enemyTrajectories={enemyTrajectories}
+                  isAnimating={isAnimating}
+                  movementOrders={movementOrders}
+                  shotAnimations={shotAnimations}
+                  onCellClick={handleCellClick}
+                  onShipClick={handleShipClickForDetail}
+                  onShipRightClick={handleShipRightClick}
+                />
+              </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>

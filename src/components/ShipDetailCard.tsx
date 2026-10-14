@@ -362,7 +362,7 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 overflow-auto p-4 flex justify-center items-start">
           <div className="border border-slate-600 rounded bg-slate-900/50">
-            <svg ref={svgRef} width={width} height={height + 40} className="cursor-default" onMouseDown={handleBackgroundMouseDown}>
+            <svg ref={svgRef} width={width} height={height + 20} className="cursor-default" onMouseDown={handleBackgroundMouseDown}>
               {backgroundImage && (<image href={backgroundImage} x={backgroundPosition.x} y={backgroundPosition.y} opacity={0.6} className={isBackgroundLocked ? "pointer-events-none" : "cursor-move"} />)}
               {showGrid && (
                 <g opacity={0.3}>
@@ -371,18 +371,18 @@ export default function ShipDetailCard({ ship, onClose, onSave }: ShipDetailCard
                 </g>
               )}
               <g>
-                <line x1={padding} y1={height - padding + 12} x2={width - padding} y2={height - padding + 12} stroke="#94a3b8" strokeWidth="1" />
+                <line x1={padding} y1={height - padding + 2} x2={width - padding} y2={height - padding + 2} stroke="#94a3b8" strokeWidth="1" />
                 {Array.from({ length: Math.floor(cols / 4) + 1 }).map((_, i) => {
                   const x = padding + i * 4 * gridSize;
                   const meters = i * 20;
-                  return (<g key={`ruler-${i}`}><line x1={x} y1={height - padding + 8} x2={x} y2={height - padding + 16} stroke="#94a3b8" strokeWidth="1" /><text x={x} y={height - padding + 26} fill="#94a3b8" fontSize="7" textAnchor="middle">{meters}м</text></g>);
+                  return (<g key={`ruler-${i}`}><line x1={x} y1={height - padding + 2} x2={x} y2={height - padding + 8} stroke="#94a3b8" strokeWidth="1" /><text x={x} y={height - padding + 14} fill="#94a3b8" fontSize="7" textAnchor="middle">{meters}м</text></g>);
                 })}
                 {Array.from({ length: cols + 1 }).map((_, i) => {
                   if (i % 4 === 0) return null;
                   const x = padding + i * gridSize;
-                  return (<line key={`tick-${i}`} x1={x} y1={height - padding + 10} x2={x} y2={height - padding + 14} stroke="#64748b" strokeWidth="0.5" />);
+                  return (<line key={`tick-${i}`} x1={x} y1={height - padding + 2} x2={x} y2={height - padding + 6} stroke="#64748b" strokeWidth="0.5" />);
                 })}
-                <text x={width / 2} y={height - padding + 35} fill="#64748b" fontSize="8" textAnchor="middle">1 клетка = 5м | Всего: 280м</text>
+                <text x={width / 2} y={height - padding + 18} fill="#64748b" fontSize="8" textAnchor="middle">1 клетка = 5м | Всего: 280м</text>
               </g>
               {showCompartments && compartments.map((comp) => {
                 const pos = compartmentPositions.get(comp.id);

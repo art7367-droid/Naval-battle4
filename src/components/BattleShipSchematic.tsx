@@ -14,12 +14,18 @@ export default function BattleShipSchematic({ ship, hitMarkers = [] }: BattleShi
   // Используем те же размеры что и в базе данных
   const cols = 56;
   const rows = 23;
-  const gridSize = 12;
   const padding = 20;
   
-  // Размеры SVG (такие же как в ShipDetailCard)
-  const svgWidth = cols * gridSize + padding * 2;
-  const svgHeight = rows * gridSize + padding * 2 + 40; // +40 для линейки
+  // Высота SVG = высота картинки + 40px для линейки
+  const imageHeight = 116; // Размер картинки Ямато
+  const svgWidth = cols * 12 + padding * 2; // 712px
+  const svgHeight = imageHeight + 40; // 156px
+  
+  // gridSize вычисляется автоматически на основе высоты (минимум 6px для читаемости)
+  const gridSize = Math.max(6, Math.min(12, (svgHeight - 40 - padding * 2) / rows));
+  
+  // Пересчитываем реальную высоту SVG на основе gridSize
+  const actualSvgHeight = gridSize * rows + padding * 2 + 40;
   
   const getCompartmentColor = (comp: Compartment) => {
     return getCompartmentTypeColor(comp.type, comp.status);
@@ -30,7 +36,7 @@ export default function BattleShipSchematic({ ship, hitMarkers = [] }: BattleShi
   };
   
   return (
-    <svg width={svgWidth} height={svgHeight} className="border border-slate-700 rounded bg-slate-900/50">
+    <svg width={svgWidth} height={actualSvgHeight} className="border border-slate-700 rounded bg-slate-900/50">
       {/* Фоновое изображение корабля - оригинальный размер, привязано к сетке, заблокировано */}
       {ship.backgroundImage && (
         <image 
@@ -98,23 +104,23 @@ export default function BattleShipSchematic({ ship, hitMarkers = [] }: BattleShi
       
       {/* Линейка снизу */}
       <g>
-        <line x1={padding} y1={svgHeight - 30} x2={svgWidth - padding} y2={svgHeight - 30} stroke="#94a3b8" strokeWidth="1" />
+        <line x1={padding} y1={actualSvgHeight - 30} x2={svgWidth - padding} y2={actualSvgHeight - 30} stroke="#94a3b8" strokeWidth="1" />
         {Array.from({ length: Math.floor(cols / 4) + 1 }).map((_, i) => {
           const x = padding + i * 4 * gridSize;
           const meters = i * 20;
           return (
             <g key={`ruler-${i}`}>
-              <line x1={x} y1={svgHeight - 34} x2={x} y2={svgHeight - 26} stroke="#94a3b8" strokeWidth="1" />
-              <text x={x} y={svgHeight - 16} fill="#94a3b8" fontSize="7" textAnchor="middle">{meters}м</text>
+              <line x1={x} y1={actualSvgHeight - 34} x2={x} y2={actualSvgHeight - 26} stroke="#94a3b8" strokeWidth="1" />
+              <text x={x} y={actualSvgHeight - 16} fill="#94a3b8" fontSize="7" textAnchor="middle">{meters}м</text>
             </g>
           );
         })}
         {Array.from({ length: cols + 1 }).map((_, i) => {
           if (i % 4 === 0) return null;
           const x = padding + i * gridSize;
-          return <line key={`tick-${i}`} x1={x} y1={svgHeight - 32} x2={x} y2={svgHeight - 28} stroke="#64748b" strokeWidth="0.5" />;
+          return <line key={`tick-${i}`} x1={x} y1={actualSvgHeight - 32} x2={x} y2={actualSvgHeight - 28} stroke="#64748b" strokeWidth="0.5" />;
         })}
-        <text x={svgWidth / 2} y={svgHeight - 5} fill="#64748b" fontSize="8" textAnchor="middle">1 клетка = 5м | Всего: {cols * 5}м</text>
+        <text x={svgWidth / 2} y={actualSvgHeight - 5} fill="#64748b" fontSize="8" textAnchor="middle">1 клетка = 5м | Всего: {cols * 5}м</text>
       </g>
     </svg>
   );

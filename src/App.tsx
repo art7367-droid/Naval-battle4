@@ -911,15 +911,15 @@ function App() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white p-1">
       <div className="w-full">
         {phase !== 'placement' && (
-          <>
-            {/* Верхняя панель с кнопками управления и информацией о флотах */}
-            <div className="mb-2">
+          <div className="flex flex-row justify-start gap-2 items-start">
+            {/* Левая колонка: Кнопки + Информация о флотах + Детали корабля + Журнал */}
+            <div className="flex flex-col gap-2 flex-shrink-0">
               {/* Кнопки управления */}
-              <div className="flex justify-center gap-3 mb-2 flex-wrap">
+              <div className="flex flex-col gap-2">
                 {phase === 'planning' && selectedTarget && (
                   <button
                     onClick={confirmShot}
-                    className="px-5 py-2 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-lg font-semibold hover:from-yellow-600 hover:to-orange-700 transition-all shadow-lg animate-pulse"
+                    className="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-lg font-semibold hover:from-yellow-600 hover:to-orange-700 transition-all shadow-lg animate-pulse text-sm"
                   >
                     🎯 Подтвердить выстрел
                   </button>
@@ -927,7 +927,7 @@ function App() {
                 {phase === 'planning' && (
                   <button
                     onClick={skipShot}
-                    className="px-5 py-2 bg-gradient-to-r from-slate-500 to-slate-600 rounded-lg font-semibold hover:from-slate-600 hover:to-slate-700 transition-all shadow-lg"
+                    className="px-4 py-2 bg-gradient-to-r from-slate-500 to-slate-600 rounded-lg font-semibold hover:from-slate-600 hover:to-slate-700 transition-all shadow-lg text-sm"
                   >
                     ⏭️ Пропустить выстрел
                   </button>
@@ -935,7 +935,7 @@ function App() {
                 {(phase === 'results' || phase === 'gameOver') && battleLog.length > 0 && (
                   <button
                     onClick={() => setShowBattleLog(!showBattleLog)}
-                    className="px-5 py-2 bg-gradient-to-r from-slate-600 to-slate-700 rounded-lg font-semibold hover:from-slate-700 hover:to-slate-800 transition-all shadow-lg"
+                    className="px-4 py-2 bg-gradient-to-r from-slate-600 to-slate-700 rounded-lg font-semibold hover:from-slate-700 hover:to-slate-800 transition-all shadow-lg text-sm"
                   >
                     📜 {showBattleLog ? 'Скрыть' : 'Показать'} журнал ({battleLog.length})
                   </button>
@@ -943,7 +943,7 @@ function App() {
                 {phase === 'gameOver' && (
                   <button
                     onClick={resetGame}
-                    className="px-5 py-2 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg font-semibold hover:from-purple-600 hover:to-pink-700 transition-all shadow-lg"
+                    className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg font-semibold hover:from-purple-600 hover:to-pink-700 transition-all shadow-lg text-sm"
                   >
                     🔄 Новая игра
                   </button>
@@ -951,10 +951,10 @@ function App() {
               </div>
 
               {/* Информация о флотах */}
-              <div className="flex justify-center gap-6 mb-2 flex-wrap">
+              <div className="flex flex-col gap-2">
                 <div className="text-center">
-                  <div className="text-cyan-300 font-semibold mb-1">🛡️ Ваш флот</div>
-                  <div className="flex gap-2 text-xs flex-wrap justify-center max-w-md">
+                  <div className="text-cyan-300 font-semibold mb-1 text-xs">🛡️ Ваш флот</div>
+                  <div className="flex gap-1 text-xs flex-wrap justify-center max-w-[750px]">
                     {playerShips.map(ship => (
                       <button
                         key={ship.id}
@@ -981,8 +981,8 @@ function App() {
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-red-300 font-semibold mb-1">🎯 Вражеский флот</div>
-                  <div className="flex gap-2 text-xs flex-wrap justify-center max-w-md">
+                  <div className="text-red-300 font-semibold mb-1 text-xs">🎯 Вражеский флот</div>
+                  <div className="flex gap-1 text-xs flex-wrap justify-center max-w-[750px]">
                     {enemyShips.map(ship => (
                       <div
                         key={ship.id}
@@ -1005,38 +1005,38 @@ function App() {
                   </div>
                 </div>
               </div>
+
+              {/* Детали корабля */}
+              <BattleShipDetailCard ship={selectedShipForDetail} hitMarkers={hitMarkers} />
+              
+              {/* Журнал боя */}
+              {showBattleLog && <BattleLog entries={battleLog} title="Журнал боя" />}
             </div>
 
-            {/* Основная область с картой и панелью слева */}
-            <div className="flex flex-col lg:flex-row justify-start gap-2 items-start">
-              <div className="flex flex-col gap-2 flex-shrink-0 mt-24">
-                <BattleShipDetailCard ship={selectedShipForDetail} hitMarkers={hitMarkers} />
-                {showBattleLog && <BattleLog entries={battleLog} title="Журнал боя" />}
-              </div>
-              <div className="flex-1 overflow-auto">
-                <HexGrid
-                  playerShips={playerShips}
-                  enemyShips={enemyShips}
-                  phase={phase}
-                  selectedTarget={selectedTarget}
-                  shotTargets={playerShotTargets}
-                  shots={playerShots}
-                  enemyShots={enemyShots}
-                  selectedShipForMove={selectedShipForMove}
-                  reachableHexes={reachableHexes}
-                  attackingShip={playerShips[currentShipIndex]}
-                  playerTrajectories={playerTrajectories}
-                  enemyTrajectories={enemyTrajectories}
-                  isAnimating={isAnimating}
-                  movementOrders={movementOrders}
-                  shotAnimations={shotAnimations}
-                  onCellClick={handleCellClick}
-                  onShipClick={handleShipClickForDetail}
-                  onShipRightClick={handleShipRightClick}
-                />
-              </div>
+            {/* Правая колонка: только гексагональная карта */}
+            <div className="flex-1 overflow-auto">
+              <HexGrid
+                playerShips={playerShips}
+                enemyShips={enemyShips}
+                phase={phase}
+                selectedTarget={selectedTarget}
+                shotTargets={playerShotTargets}
+                shots={playerShots}
+                enemyShots={enemyShots}
+                selectedShipForMove={selectedShipForMove}
+                reachableHexes={reachableHexes}
+                attackingShip={playerShips[currentShipIndex]}
+                playerTrajectories={playerTrajectories}
+                enemyTrajectories={enemyTrajectories}
+                isAnimating={isAnimating}
+                movementOrders={movementOrders}
+                shotAnimations={shotAnimations}
+                onCellClick={handleCellClick}
+                onShipClick={handleShipClickForDetail}
+                onShipRightClick={handleShipRightClick}
+              />
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>

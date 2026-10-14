@@ -247,8 +247,7 @@ export default function StrategicMap({ onBack, strategicMapData }: StrategicMapP
     ctx.strokeRect(mapScreenX, mapScreenY, mapScreenWidth, mapScreenHeight);
     
     // Отрисовка гексагональной сетки
-    // Оригинальный гекс: 53 пикселя высота × 43 пикселя ширина
-    // Новый гекс (в 2 раза меньше): 26.5 пикселя высота × 21.5 пикселя ширина
+    // Размеры гексов: 21 пикселей ширина × 25 пикселей высота
     
     // Для pointy-top гекса (остриём вверх):
     // - Высота = 2r (где r - радиус от центра до вершины)
@@ -256,20 +255,12 @@ export default function StrategicMap({ onBack, strategicMapData }: StrategicMapP
     // - Расстояние между центрами по горизонтали = √3 × r
     // - Расстояние между центрами по вертикали = 1.5r
     
-    const originalHexHeight = 53; // высота оригинального гекса
-    const originalHexWidth = 43;  // ширина оригинального гекса
-    
-    // Уменьшаем в 2 раза
-    const hexHeight = originalHexHeight / 2; // 26.5 пикселей - полная высота
-    const hexWidth = originalHexWidth / 2;   // 21.5 пикселей - полная ширина
+    const hexWidth = 21;  // ширина гекса
+    const hexHeight = 25; // высота гекса
     
     // Для pointy-top гекса:
     // r = hexHeight / 2 (радиус)
-    // Правильная ширина должна быть √3 × r = √3 × 26.5 ≈ 45.9 пикселей
-    // Но у нас 21.5 пикселей, что не соответствует правильным пропорциям
-    // Используем фактические размеры для отрисовки
-    
-    const hexRadius = hexHeight / 2; // 13.25 пикселей
+    const hexRadius = hexHeight / 2; // 12.5 пикселей
     
     // Правильные расстояния между центрами гексов
     const hexSpacingX = hexWidth; // горизонтальное расстояние
@@ -402,8 +393,44 @@ export default function StrategicMap({ onBack, strategicMapData }: StrategicMapP
           ← Назад в меню
         </button>
         <h1 className="text-2xl font-bold text-cyan-300">🗺️ Стратегическая карта Тихого океана</h1>
-        <div className="text-sm text-slate-400">
-          Масштаб: {Math.round(viewport.zoom * 100)}%
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-slate-400">
+            Масштаб: {Math.round(viewport.zoom * 100)}%
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-slate-400">Масштаб:</label>
+            <input
+              type="range"
+              min="0"
+              max="3"
+              step="1"
+              value={[0.5, 1, 1.5, 2].indexOf(viewport.zoom)}
+              onChange={(e) => {
+                const zoomLevels = [0.5, 1, 1.5, 2];
+                const newZoom = zoomLevels[parseInt(e.target.value)];
+                setViewport(prev => ({ ...prev, zoom: newZoom }));
+              }}
+              className="w-32 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
+              style={{
+                background: `linear-gradient(to right, #06b6d4 0%, #06b6d4 ${([0.5, 1, 1.5, 2].indexOf(viewport.zoom) / 3) * 100}%, #374151 ${([0.5, 1, 1.5, 2].indexOf(viewport.zoom) / 3) * 100}%, #374151 100%)`
+              }}
+            />
+            <div className="flex gap-1 text-xs">
+              {[50, 100, 150, 200].map((percent, idx) => (
+                <button
+                  key={percent}
+                  onClick={() => setViewport(prev => ({ ...prev, zoom: percent / 100 }))}
+                  className={`px-2 py-1 rounded transition-colors ${
+                    Math.round(viewport.zoom * 100) === percent
+                      ? 'bg-cyan-600 text-white'
+                      : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                  }`}
+                >
+                  {percent}%
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
       

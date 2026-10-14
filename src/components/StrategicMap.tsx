@@ -249,43 +249,68 @@ export default function StrategicMap({ onBack, strategicMapData }: StrategicMapP
     // Отрисовка гексагональной сетки
     // Оригинальный гекс: 53 пикселя высота × 43 пикселя ширина
     // Новый гекс (в 2 раза меньше): 26.5 пикселя высота × 21.5 пикселя ширина
-    const originalHexHeight = 53;
-    const originalHexWidth = 43;
-    const hexHeight = originalHexHeight / 2; // 26.5 пикселей
-    const hexWidth = originalHexWidth / 2; // 21.5 пикселя
+    
+    // Для pointy-top гекса (остриём вверх):
+    // - Высота = 2r (где r - радиус от центра до вершины)
+    // - Ширина = √3 × r
+    // - Расстояние между центрами по горизонтали = √3 × r
+    // - Расстояние между центрами по вертикали = 1.5r
+    
+    const originalHexHeight = 53; // высота оригинального гекса
+    const originalHexWidth = 43;  // ширина оригинального гекса
+    
+    // Уменьшаем в 2 раза
+    const hexHeight = originalHexHeight / 2; // 26.5 пикселей - полная высота
+    const hexWidth = originalHexWidth / 2;   // 21.5 пикселей - полная ширина
+    
+    // Для pointy-top гекса:
+    // r = hexHeight / 2 (радиус)
+    // Правильная ширина должна быть √3 × r = √3 × 26.5 ≈ 45.9 пикселей
+    // Но у нас 21.5 пикселей, что не соответствует правильным пропорциям
+    // Используем фактические размеры для отрисовки
+    
+    const hexRadius = hexHeight / 2; // 13.25 пикселей
+    
+    // Правильные расстояния между центрами гексов
+    const hexSpacingX = hexWidth; // горизонтальное расстояние
+    const hexSpacingY = hexHeight * 0.75; // вертикальное расстояние (1.5r)
     
     // Рассчитываем количество гексов для покрытия всей карты
-    const hexCols = Math.ceil(MAP_WIDTH / hexWidth);
-    const hexRows = Math.ceil(MAP_HEIGHT / (hexHeight * 0.75)); // Для pointy-top гексов
+    const hexCols = Math.ceil(MAP_WIDTH / hexSpacingX) + 1;
+    const hexRows = Math.ceil(MAP_HEIGHT / hexSpacingY) + 1;
     
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
     ctx.lineWidth = 1 / viewport.zoom;
     
     // Отрисовка только видимых гексов
-    const startHexCol = Math.max(0, Math.floor(visibleX / hexWidth));
-    const endHexCol = Math.min(hexCols, Math.ceil((visibleX + visibleWidth) / hexWidth));
-    const startHexRow = Math.max(0, Math.floor(visibleY / (hexHeight * 0.75)));
-    const endHexRow = Math.min(hexRows, Math.ceil((visibleY + visibleHeight) / (hexHeight * 0.75)));
+    const startHexCol = Math.max(0, Math.floor(visibleX / hexSpacingX) - 1);
+    const endHexCol = Math.min(hexCols, Math.ceil((visibleX + visibleWidth) / hexSpacingX) + 1);
+    const startHexRow = Math.max(0, Math.floor(visibleY / hexSpacingY) - 1);
+    const endHexRow = Math.min(hexRows, Math.ceil((visibleY + visibleHeight) / hexSpacingY) + 1);
     
     for (let row = startHexRow; row < endHexRow; row++) {
       for (let col = startHexCol; col < endHexCol; col++) {
-        // Центр гекса (с учётом смещения для нечётных рядов)
-        const offsetX = (row % 2) * (hexWidth / 2);
-        const centerX = col * hexWidth + hexWidth / 2 + offsetX;
-        const centerY = row * (hexHeight * 0.75) + hexHeight / 2;
+        // Центр гекса
+        // Нечётные ряды смещены на половину ширины
+        const offsetX = (row % 2) * (hexSpacingX / 2);
+        const centerX = col * hexSpacingX + offsetX;
+        const centerY = row * hexSpacingY;
         
         // Отрисовка гекса (pointy-top ориентация)
         const screenX = (centerX - visibleX) * viewport.zoom;
         const screenY = (centerY - visibleY) * viewport.zoom;
-        const screenHexWidth = hexWidth * viewport.zoom;
-        const screenHexHeight = hexHeight * viewport.zoom;
+        
+        // Радиусы для отрисовки
+        const screenRadiusX = (hexWidth / 2) * viewport.zoom;
+        const screenRadiusY = (hexHeight / 2) * viewport.zoom;
         
         ctx.beginPath();
         // 6 вершин гекса (pointy-top)
+        // Углы: -90°, -30°, 30°, 90°, 150°, 210° (или в радианах)
         for (let i = 0; i < 6; i++) {
-          const angle = (Math.PI / 3) * i - Math.PI / 6;
-          const x = screenX + (screenHexWidth / 2) * Math.cos(angle);
-          const y = screenY + (screenHexHeight / 2) * Math.sin(angle);
+          const angle = (Math.PI / 3) * i - Math.PI / 2; // Начинаем с верхней вершины
+          const x = screenX + screenRadiusX * Math.cos(angle);
+          const y = screenY + screenRadiusY * Math.sin(angle);
           if (i === 0) {
             ctx.moveTo(x, y);
           } else {

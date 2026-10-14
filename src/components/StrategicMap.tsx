@@ -246,6 +246,52 @@ export default function StrategicMap({ onBack, strategicMapData }: StrategicMapP
     const mapScreenHeight = MAP_HEIGHT * viewport.zoom;
     ctx.strokeRect(mapScreenX, mapScreenY, mapScreenWidth, mapScreenHeight);
     
+    // Отрисовка гексагональной сетки (20 морских миль)
+    // Оригинальная сетка: 43×53 гекса = 40 миль
+    // Новая сетка: 86×106 гекса = 20 миль (в 2 раза меньше)
+    const hexCols = 106;
+    const hexRows = 86;
+    const hexWidth = MAP_WIDTH / hexCols;
+    const hexHeight = MAP_HEIGHT / hexRows;
+    
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 1 / viewport.zoom;
+    
+    // Отрисовка только видимых гексов
+    const startHexCol = Math.max(0, Math.floor(visibleX / hexWidth));
+    const endHexCol = Math.min(hexCols, Math.ceil((visibleX + visibleWidth) / hexWidth));
+    const startHexRow = Math.max(0, Math.floor(visibleY / hexHeight));
+    const endHexRow = Math.min(hexRows, Math.ceil((visibleY + visibleHeight) / hexHeight));
+    
+    for (let row = startHexRow; row < endHexRow; row++) {
+      for (let col = startHexCol; col < endHexCol; col++) {
+        // Центр гекса
+        const centerX = col * hexWidth + hexWidth / 2;
+        const centerY = row * hexHeight + hexHeight / 2;
+        
+        // Отрисовка гекса (pointy-top ориентация)
+        const screenX = (centerX - visibleX) * viewport.zoom;
+        const screenY = (centerY - visibleY) * viewport.zoom;
+        const screenHexWidth = hexWidth * viewport.zoom;
+        const screenHexHeight = hexHeight * viewport.zoom;
+        
+        ctx.beginPath();
+        // 6 вершин гекса (pointy-top)
+        for (let i = 0; i < 6; i++) {
+          const angle = (Math.PI / 3) * i - Math.PI / 6;
+          const x = screenX + (screenHexWidth / 2) * Math.cos(angle);
+          const y = screenY + (screenHexHeight / 2) * Math.sin(angle);
+          if (i === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        }
+        ctx.closePath();
+        ctx.stroke();
+      }
+    }
+    
   }, [viewport, regions, strategicMapData]);
   
   // Обработка мыши - перемещение карты

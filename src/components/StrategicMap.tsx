@@ -1,0 +1,288 @@
+import { useState, useRef, useEffect } from 'react';
+
+interface StrategicMapProps {
+  onBack: () => void;
+}
+
+interface Viewport {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  zoom: number;
+}
+
+interface Region {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  color: string;
+}
+
+export default function StrategicMap({ onBack }: StrategicMapProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Размер карты Тихого океана
+  const MAP_WIDTH = 9703;
+  const MAP_HEIGHT = 4767;
+  
+  const [viewport, setViewport] = useState<Viewport>({
+    x: 0,
+    y: 0,
+    width: 1200,
+    height: 800,
+    zoom: 0.5
+  });
+  
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
+  
+  // Регионы Тихого океана
+  const regions: Region[] = [
+    { id: 'japan', name: 'Япония', x: 7500, y: 1200, width: 800, height: 600, color: '#dc2626' },
+    { id: 'philippines', name: 'Филиппины', x: 6800, y: 2400, width: 600, height: 500, color: '#2563eb' },
+    { id: 'midway', name: 'Мидуэй', x: 4500, y: 1500, width: 400, height: 400, color: '#16a34a' },
+    { id: 'hawaii', name: 'Гавайи', x: 2500, y: 1800, width: 500, height: 400, color: '#9333ea' },
+    { id: 'australia', name: 'Австралия', x: 7000, y: 3500, width: 1200, height: 900, color: '#ea580c' },
+    { id: 'alaska', name: 'Аляска', x: 1000, y: 500, width: 800, height: 600, color: '#0891b2' },
+    { id: 'california', name: 'Калифорния', x: 800, y: 1500, width: 600, height: 800, color: '#ca8a04' },
+  ];
+  
+  // Обновление размеров canvas при изменении контейнера
+  useEffect(() => {
+    const updateSize = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setViewport(prev => ({
+          ...prev,
+          width: rect.width,
+          height: rect.height
+        }));
+      }
+    };
+    
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+  
+  // Отрисовка карты
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    // Очистка canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Фон - океан
+    ctx.fillStyle = '#1e3a8a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Вычисляем видимую область
+    const visibleX = viewport.x / viewport.zoom;
+    const visibleY = viewport.y / viewport.zoom;
+    const visibleWidth = viewport.width / viewport.zoom;
+    const visibleHeight = viewport.height / viewport.zoom;
+    
+    // Отрисовка сетки
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1 / viewport.zoom;
+    
+    const gridSize = 500;
+    const startX = Math.floor(visibleX / gridSize) * gridSize;
+    const startY = Math.floor(visibleY / gridSize) * gridSize;
+    
+    for (let x = startX; x < visibleX + visibleWidth; x += gridSize) {
+      if (x >= 0 && x <= MAP_WIDTH) {
+        const screenX = (x - visibleX) * viewport.zoom;
+        ctx.beginPath();
+        ctx.moveTo(screenX, 0);
+        ctx.lineTo(screenX, canvas.height);
+        ctx.stroke();
+      }
+    }
+    
+    for (let y = startY; y < visibleY + visibleHeight; y += gridSize) {
+      if (y >= 0 && y <= MAP_HEIGHT) {
+        const screenY = (y - visibleY) * viewport.zoom;
+        ctx.beginPath();
+        ctx.moveTo(0, screenY);
+        ctx.lineTo(canvas.width, screenY);
+        ctx.stroke();
+      }
+    }
+    
+    // Отрисовка регионов (только видимых)
+    regions.forEach(region => {
+      // Проверка видимости региона
+      const regionRight = region.x + region.width;
+      const regionBottom = region.y + region.height;
+      
+      if (regionRight < visibleX || region.x > visibleX + visibleWidth ||
+          regionBottom < visibleY || region.y > visibleY + visibleHeight) {
+        return; // Регион не виден
+      }
+      
+      const screenX = (region.x - visibleX) * viewport.zoom;
+      const screenY = (region.y - visibleY) * viewport.zoom;
+      const screenWidth = region.width * viewport.zoom;
+      const screenHeight = region.height * viewport.zoom;
+      
+      // Фон региона
+      ctx.fillStyle = region.color + '40'; // 25% прозрачность
+      ctx.fillRect(screenX, screenY, screenWidth, screenHeight);
+      
+      // Граница региона
+      ctx.strokeStyle = region.color;
+      ctx.lineWidth = 2 / viewport.zoom;
+      ctx.strokeRect(screenX, screenY, screenWidth, screenHeight);
+      
+      // Название региона
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `${Math.max(12, 16 * viewport.zoom)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(region.name, screenX + screenWidth / 2, screenY + screenHeight / 2);
+    });
+    
+    // Границы карты
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 3 / viewport.zoom;
+    const mapScreenX = (0 - visibleX) * viewport.zoom;
+    const mapScreenY = (0 - visibleY) * viewport.zoom;
+    const mapScreenWidth = MAP_WIDTH * viewport.zoom;
+    const mapScreenHeight = MAP_HEIGHT * viewport.zoom;
+    ctx.strokeRect(mapScreenX, mapScreenY, mapScreenWidth, mapScreenHeight);
+    
+  }, [viewport, regions]);
+  
+  // Обработка мыши - перемещение карты
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setDragStart({ x: e.clientX, y: e.clientY });
+  };
+  
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
+    
+    setViewport(prev => ({
+      ...prev,
+      x: Math.max(0, Math.min(MAP_WIDTH * prev.zoom - prev.width, prev.x - dx)),
+      y: Math.max(0, Math.min(MAP_HEIGHT * prev.zoom - prev.height, prev.y - dy))
+    }));
+    
+    setDragStart({ x: e.clientX, y: e.clientY });
+  };
+  
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+  
+  // Обработка колеса мыши - масштабирование
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    
+    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+    const newZoom = Math.max(0.1, Math.min(2, viewport.zoom * zoomFactor));
+    
+    // Масштабирование относительно центра экрана
+    const centerX = viewport.x + viewport.width / 2;
+    const centerY = viewport.y + viewport.height / 2;
+    
+    const newX = centerX - (centerX - viewport.x) * (newZoom / viewport.zoom);
+    const newY = centerY - (centerY - viewport.y) * (newZoom / viewport.zoom);
+    
+    setViewport(prev => ({
+      ...prev,
+      zoom: newZoom,
+      x: Math.max(0, Math.min(MAP_WIDTH * newZoom - prev.width, newX)),
+      y: Math.max(0, Math.min(MAP_HEIGHT * newZoom - prev.height, newY))
+    }));
+  };
+  
+  // Клик по региону
+  const handleClick = (e: React.MouseEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+    
+    const mapX = viewport.x / viewport.zoom + clickX / viewport.zoom;
+    const mapY = viewport.y / viewport.zoom + clickY / viewport.zoom;
+    
+    const clickedRegion = regions.find(region =>
+      mapX >= region.x && mapX <= region.x + region.width &&
+      mapY >= region.y && mapY <= region.y + region.height
+    );
+    
+    setSelectedRegion(clickedRegion || null);
+  };
+  
+  return (
+    <div className="min-h-screen bg-slate-900 text-white flex flex-col">
+      {/* Верхняя панель */}
+      <div className="bg-slate-800 p-4 flex justify-between items-center border-b border-slate-700">
+        <button
+          onClick={onBack}
+          className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
+        >
+          ← Назад в меню
+        </button>
+        <h1 className="text-2xl font-bold text-cyan-300">🗺️ Стратегическая карта Тихого океана</h1>
+        <div className="text-sm text-slate-400">
+          Масштаб: {Math.round(viewport.zoom * 100)}%
+        </div>
+      </div>
+      
+      {/* Карта */}
+      <div 
+        ref={containerRef}
+        className="flex-1 relative overflow-hidden cursor-move"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onWheel={handleWheel}
+        onClick={handleClick}
+      >
+        <canvas
+          ref={canvasRef}
+          width={viewport.width}
+          height={viewport.height}
+          className="absolute top-0 left-0"
+        />
+      </div>
+      
+      {/* Информация о выбранном регионе */}
+      {selectedRegion && (
+        <div className="absolute bottom-4 right-4 bg-slate-800 border border-slate-700 rounded-lg p-4 shadow-lg">
+          <h3 className="text-lg font-bold text-cyan-300 mb-2">{selectedRegion.name}</h3>
+          <div className="text-sm text-slate-300">
+            <p>Координаты: ({selectedRegion.x}, {selectedRegion.y})</p>
+            <p>Размер: {selectedRegion.width} × {selectedRegion.height}</p>
+          </div>
+        </div>
+      )}
+      
+      {/* Подсказки */}
+      <div className="absolute bottom-4 left-4 bg-slate-800/80 border border-slate-700 rounded-lg p-3 text-xs text-slate-400">
+        <p>🖱️ Перетаскивание - перемещение карты</p>
+        <p>🔍 Колесо мыши - масштабирование</p>
+        <p>👆 Клик - выбор региона</p>
+      </div>
+    </div>
+  );
+}

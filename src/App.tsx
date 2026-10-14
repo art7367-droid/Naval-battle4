@@ -17,6 +17,7 @@ import BattleLog from './components/BattleLog';
 import BattleShipDetailCard from './components/BattleShipDetailCard';
 import ShipDatabaseManager from './components/ShipDatabaseManager';
 import ShipSelectionScreen from './components/ShipSelectionScreen';
+import StrategicMap from './components/StrategicMap';
 
 function shipIcon(type: string): string {
   switch (type) {
@@ -27,7 +28,7 @@ function shipIcon(type: string): string {
   }
 }
 
-type AppScreen = 'menu' | 'database' | 'selection' | 'battle';
+type AppScreen = 'menu' | 'database' | 'selection' | 'battle' | 'campaign';
 
 function App() {
   const [screen, setScreen] = useState<AppScreen>('menu');
@@ -849,7 +850,7 @@ function App() {
               onClick={() => setScreen('database')}
               className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg font-bold text-lg hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg"
             >
-              📚 База данных кораблей
+              🔧 Редактор
             </button>
             
             <button
@@ -858,11 +859,18 @@ function App() {
             >
               ⚔️ Начать бой
             </button>
+            
+            <button
+              onClick={() => setScreen('campaign')}
+              className="w-full px-6 py-4 bg-gradient-to-r from-green-600 to-teal-600 rounded-lg font-bold text-lg hover:from-green-700 hover:to-teal-700 transition-all shadow-lg"
+            >
+              🗺️ Кампания
+            </button>
           </div>
           
           <div className="mt-8 text-center text-sm text-slate-400">
-            <p>Версия с базой данных кораблей</p>
-            <p className="mt-2">Создавайте и управляйте коллекцией кораблей, выбирайте флоты для сражений</p>
+            <p>Версия с базой данных кораблей и стратегической картой</p>
+            <p className="mt-2">Создавайте корабли, сражайтесь в тактических боях или исследуйте Тихий океан в кампании</p>
           </div>
         </div>
       </div>
@@ -904,6 +912,11 @@ function App() {
         <ShipSelectionScreen onStartBattle={startBattleFromDB} />
       </div>
     );
+  }
+
+  // Экран кампании
+  if (screen === 'campaign') {
+    return <StrategicMap onBack={() => setScreen('menu')} />;
   }
 
   // Экран боя

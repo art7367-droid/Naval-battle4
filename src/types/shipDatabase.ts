@@ -24,6 +24,7 @@ export interface StrategicMapData {
   mapHeight: number;
   tileWidth: number;
   tileHeight: number;
+  hexSample?: string; // Изображение образца гекса для отрисовки сетки
 }
 
 export interface ShipDatabaseEntry {

@@ -75,6 +75,7 @@ export default function StrategicMap({ onBack, strategicMapData }: StrategicMapP
   
   // Кэш для загруженных изображений
   const imageCache = useRef<Map<string, HTMLImageElement>>(new Map());
+  const hexSampleImage = useRef<HTMLImageElement | null>(null);
   
   // Загрузка изображений тайлов
   useEffect(() => {
@@ -88,6 +89,20 @@ export default function StrategicMap({ onBack, strategicMapData }: StrategicMapP
       }
     });
   }, [strategicMapData]);
+  
+  // Загрузка образца гекса
+  useEffect(() => {
+    if (strategicMapData?.hexSample) {
+      const img = new Image();
+      img.onload = () => {
+        hexSampleImage.current = img;
+        console.log('✅ Образец гекса загружен');
+      };
+      img.src = strategicMapData.hexSample;
+    } else {
+      hexSampleImage.current = null;
+    }
+  }, [strategicMapData?.hexSample]);
   
   // Отрисовка карты
   useEffect(() => {
@@ -279,37 +294,62 @@ export default function StrategicMap({ onBack, strategicMapData }: StrategicMapP
     const startHexRow = Math.max(0, Math.floor(visibleY / hexSpacingY) - 1);
     const endHexRow = Math.min(hexRows, Math.ceil((visibleY + visibleHeight) / hexSpacingY) + 1);
     
-    for (let row = startHexRow; row < endHexRow; row++) {
-      for (let col = startHexCol; col < endHexCol; col++) {
-        // Центр гекса
-        // Нечётные ряды смещены на половину ширины
-        const offsetX = (row % 2) * (hexSpacingX / 2);
-        const centerX = col * hexSpacingX + offsetX;
-        const centerY = row * hexSpacingY;
-        
-        // Отрисовка гекса (pointy-top ориентация)
-        const screenX = (centerX - visibleX) * viewport.zoom;
-        const screenY = (centerY - visibleY) * viewport.zoom;
-        
-        // Радиусы для отрисовки
-        const screenRadiusX = (hexWidth / 2) * viewport.zoom;
-        const screenRadiusY = (hexHeight / 2) * viewport.zoom;
-        
-        ctx.beginPath();
-        // 6 вершин гекса (pointy-top)
-        // Углы: -90°, -30°, 30°, 90°, 150°, 210° (или в радианах)
-        for (let i = 0; i < 6; i++) {
-          const angle = (Math.PI / 3) * i - Math.PI / 2; // Начинаем с верхней вершины
-          const x = screenX + screenRadiusX * Math.cos(angle);
-          const y = screenY + screenRadiusY * Math.sin(angle);
-          if (i === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            ctx.lineTo(x, y);
-          }
+    // Если есть образец гекса, используем его для отрисовки
+    if (hexSampleImage.current) {
+      const sampleImg = hexSampleImage.current;
+      const sampleWidth = hexWidth * viewport.zoom;
+      const sampleHeight = hexHeight * viewport.zoom;
+      
+      for (let row = startHexRow; row < endHexRow; row++) {
+        for (let col = startHexCol; col < endHexCol; col++) {
+          // Центр гекса
+          // Нечётные ряды смещены на половину ширины
+          const offsetX = (row % 2) * (hexSpacingX / 2);
+          const centerX = col * hexSpacingX + offsetX;
+          const centerY = row * hexSpacingY;
+          
+          // Позиция для отрисовки образца
+          const screenX = (centerX - visibleX) * viewport.zoom - sampleWidth / 2;
+          const screenY = (centerY - visibleY) * viewport.zoom - sampleHeight / 2;
+          
+          // Отрисовка образца гекса
+          ctx.drawImage(sampleImg, screenX, screenY, sampleWidth, sampleHeight);
         }
-        ctx.closePath();
-        ctx.stroke();
+      }
+    } else {
+      // Если образца нет, рисуем программно
+      for (let row = startHexRow; row < endHexRow; row++) {
+        for (let col = startHexCol; col < endHexCol; col++) {
+          // Центр гекса
+          // Нечётные ряды смещены на половину ширины
+          const offsetX = (row % 2) * (hexSpacingX / 2);
+          const centerX = col * hexSpacingX + offsetX;
+          const centerY = row * hexSpacingY;
+          
+          // Отрисовка гекса (pointy-top ориентация)
+          const screenX = (centerX - visibleX) * viewport.zoom;
+          const screenY = (centerY - visibleY) * viewport.zoom;
+          
+          // Радиусы для отрисовки
+          const screenRadiusX = (hexWidth / 2) * viewport.zoom;
+          const screenRadiusY = (hexHeight / 2) * viewport.zoom;
+          
+          ctx.beginPath();
+          // 6 вершин гекса (pointy-top)
+          // Углы: -90°, -30°, 30°, 90°, 150°, 210° (или в радианах)
+          for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI / 3) * i - Math.PI / 2; // Начинаем с верхней вершины
+            const x = screenX + screenRadiusX * Math.cos(angle);
+            const y = screenY + screenRadiusY * Math.sin(angle);
+            if (i === 0) {
+              ctx.moveTo(x, y);
+            } else {
+              ctx.lineTo(x, y);
+            }
+          }
+          ctx.closePath();
+          ctx.stroke();
+        }
       }
     }
     

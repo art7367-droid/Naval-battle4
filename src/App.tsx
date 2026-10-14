@@ -908,128 +908,11 @@ function App() {
 
   // Экран боя
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
-      <div className="w-full px-2">
-        <div className="text-center mb-4">
-          <div className="flex justify-between items-center mb-2">
-            <button
-              onClick={resetGame}
-              className="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-sm"
-            >
-              ← В меню
-            </button>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-              ⚓ Морской Бой — WeGO
-            </h1>
-            <div className="w-20"></div>
-          </div>
-          <p className="text-blue-200 mt-2 text-base whitespace-pre-line">{message}</p>
-          <p className="text-slate-400 text-sm mt-1">
-            Ход: {turnNumber} | Фаза: {
-              phase === 'movement' ? 'Движение' : 
-              phase === 'planning' ? 'Планирование' : 
-              phase === 'execution' ? 'Выполнение' : 
-              phase === 'results' ? 'Результаты' : phase
-            }
-          </p>
-        </div>
-
-        <div className="flex justify-center gap-3 mb-4 flex-wrap">
-          {phase === 'planning' && selectedTarget && (
-            <button
-              onClick={confirmShot}
-              className="px-5 py-2 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-lg font-semibold hover:from-yellow-600 hover:to-orange-700 transition-all shadow-lg animate-pulse"
-            >
-              🎯 Подтвердить выстрел
-            </button>
-          )}
-          {phase === 'planning' && (
-            <button
-              onClick={skipShot}
-              className="px-5 py-2 bg-gradient-to-r from-slate-500 to-slate-600 rounded-lg font-semibold hover:from-slate-600 hover:to-slate-700 transition-all shadow-lg"
-            >
-              ⏭️ Пропустить выстрел
-            </button>
-          )}
-
-          {(phase === 'results' || phase === 'gameOver') && battleLog.length > 0 && (
-            <button
-              onClick={() => setShowBattleLog(!showBattleLog)}
-              className="px-5 py-2 bg-gradient-to-r from-slate-600 to-slate-700 rounded-lg font-semibold hover:from-slate-700 hover:to-slate-800 transition-all shadow-lg"
-            >
-              📜 {showBattleLog ? 'Скрыть' : 'Показать'} журнал ({battleLog.length})
-            </button>
-          )}
-          {phase === 'gameOver' && (
-            <button
-              onClick={resetGame}
-              className="px-5 py-2 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg font-semibold hover:from-purple-600 hover:to-pink-700 transition-all shadow-lg"
-            >
-              🔄 Новая игра
-            </button>
-          )}
-        </div>
-
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white p-1">
+      <div className="w-full">
         {phase !== 'placement' && (
-          <div className="flex justify-center gap-6 mb-4 flex-wrap">
-            <div className="text-center">
-              <div className="text-cyan-300 font-semibold mb-1">🛡️ Ваш флот</div>
-              <div className="flex gap-2 text-xs flex-wrap justify-center max-w-md">
-                {playerShips.map(ship => (
-                  <button
-                    key={ship.id}
-                    onClick={() => phase === 'movement' && handleShipSelectForMove(ship)}
-                    disabled={ship.currentHP <= 0 || ship.hasMoved || ship.isSunk}
-                    className={`px-2 py-1 rounded transition-all relative ${
-                      ship.isSunk
-                        ? 'bg-gray-900/70 text-gray-400 line-through opacity-60'
-                        : ship.currentHP <= 0
-                        ? 'bg-red-900/50 text-red-300 line-through opacity-50'
-                        : selectedShipForMove?.id === ship.id
-                        ? 'bg-green-600/70 text-green-100 ring-2 ring-green-400'
-                        : phase === 'movement' && !ship.hasMoved
-                        ? 'bg-blue-700/50 text-blue-200 hover:bg-blue-600/50 cursor-pointer'
-                        : 'bg-slate-700/50 text-slate-300'
-                    }`}
-                  >
-                    {shipIcon(ship.type)} {ship.currentHP}/{ship.maxHP}
-                    {ship.stats.fires > 0 && <span className="ml-1" title={`${ship.stats.fires} пожар(ов)`}>🔥</span>}
-                    {ship.stats.flooding > 0.1 && <span className="ml-1" title={`Затопление ${Math.round(ship.stats.flooding * 100)}%`}>🌊</span>}
-                    {ship.isSunk && <span className="ml-1" title="Потоплен">☠️</span>}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-red-300 font-semibold mb-1">🎯 Вражеский флот</div>
-              <div className="flex gap-2 text-xs flex-wrap justify-center max-w-md">
-                {enemyShips.map(ship => (
-                  <div
-                    key={ship.id}
-                    className={`px-2 py-1 rounded ${
-                      ship.isSunk
-                        ? 'bg-gray-900/70 text-gray-400 line-through opacity-60'
-                        : ship.currentHP <= 0
-                        ? 'bg-red-900/50 text-red-300 line-through opacity-50'
-                        : ship.currentHP < ship.maxHP
-                        ? 'bg-orange-600/50 text-orange-200'
-                        : 'bg-slate-700/50 text-slate-300'
-                    }`}
-                  >
-                    {shipIcon(ship.type)} {ship.currentHP}/{ship.maxHP}
-                    {ship.stats.fires > 0 && <span className="ml-1" title={`${ship.stats.fires} пожар(ов)`}>🔥</span>}
-                    {ship.stats.flooding > 0.1 && <span className="ml-1" title={`Затопление ${Math.round(ship.stats.flooding * 100)}%`}>🌊</span>}
-                    {ship.isSunk && <span className="ml-1" title="Потоплен">☠️</span>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {phase !== 'placement' && (
-          <div className="flex flex-col lg:flex-row justify-start gap-4 items-start">
-            <div className="flex flex-col gap-4 flex-shrink-0">
+          <div className="flex flex-col lg:flex-row justify-start gap-2 items-start">
+            <div className="flex flex-col gap-2 flex-shrink-0">
               <BattleShipDetailCard ship={selectedShipForDetail} hitMarkers={hitMarkers} />
               {showBattleLog && <BattleLog entries={battleLog} title="Журнал боя" />}
             </div>
@@ -1057,29 +940,6 @@ function App() {
             </div>
           </div>
         )}
-
-        <div className="mt-6 flex justify-center gap-4 flex-wrap text-xs">
-          <div className="flex items-center gap-1">
-            <span>🚢</span>
-            <span>Линкор (100 HP, 75%, 20 уз, 10 гексов)</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span>⛴️</span>
-            <span>Крейсер (50 HP, 70%, 30 уз, 7 гексов)</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span>🚤</span>
-            <span>Эсминец (25 HP, 65%, 40 уз, 4 гекса)</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-8 h-0.5 bg-blue-500 opacity-50" style={{ backgroundImage: 'repeating-linear-gradient(90deg, #3b82f6 0, #3b82f6 5px, transparent 5px, transparent 10px)' }}></div>
-            <span>Траектория ваших кораблей</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-8 h-0.5 bg-red-500 opacity-50" style={{ backgroundImage: 'repeating-linear-gradient(90deg, #ef4444 0, #ef4444 5px, transparent 5px, transparent 10px)' }}></div>
-            <span>Траектория кораблей противника</span>
-          </div>
-        </div>
       </div>
     </div>
   );
